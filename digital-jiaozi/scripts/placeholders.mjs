@@ -16,8 +16,13 @@ const write=async(id,body,w=256,h=256)=>{
   try{await fs.access(target);}catch{await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`)).png().toFile(target);}
   manifest[id]={path:`/packages/digital-jiaozi/assets/${filename}`,status:'placeholder',label:'示意 · 素材待替换',source:'code'};
 };
-await write('B01','<rect width="900" height="600" fill="#F8F4E9"/><rect x="16" y="16" width="868" height="568" rx="8" fill="none" stroke="#B7985A" stroke-width="3"/>',900,600);
+await write('B01','<rect width="600" height="900" fill="#F8F4E9"/><rect x="12" y="18" width="576" height="864" rx="8" fill="none" stroke="#B7985A" stroke-width="2"/>',600,900);
 for(let i=0;i<5;i++)await write(`C0${i+1}`,`<g fill="none" stroke="#B83A32" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="128" cy="128" r="114"/>${motifs[i]}</g>`);
+// Additional locations reserve independent slots; these are numbered placeholders only.
+for(let i=6;i<=10;i++){
+  const id=`C${String(i).padStart(2,'0')}`;
+  await write(id,`<circle cx="128" cy="128" r="108" fill="none" stroke="#B83A32" stroke-width="6"/><text x="128" y="144" text-anchor="middle" font-family="sans-serif" font-size="48" fill="#B83A32">${id}</text>`);
+}
 for(let i=0;i<3;i++)await write(`D0${i+1}`,`<g fill="none" stroke="#B83A32" stroke-width="8"><circle cx="128" cy="128" r="110"/>${motifs[i===0?1:i===1?3:2]}</g>`);
 const goods=[
   '<rect x="40" y="70" width="176" height="120" rx="6"/><path d="M65 160L110 105L160 155L195 115"/>',

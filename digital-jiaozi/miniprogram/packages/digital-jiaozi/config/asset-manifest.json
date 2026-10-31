@@ -1,16 +1,10 @@
 {
   "B01": {
     "path": "/packages/digital-jiaozi/assets/b01.png",
-    "status": "approved",
-    "label": "",
-    "source": "imported",
-    "provenance": {
-      "targetPath": "cards/jiaozi-basic.png",
-      "resourceId": "236da774fcdb4894b4e2c8bf7953e3f0",
-      "qaNote": "中央干净区实测 0.1993-0.7983（占高 59.9%）；已按 Codex 口径保留底图、改章位坐标（行高0.25/两行y=0.215,0.535）",
-      "resolution": "共享规则已采用 y=0.215/0.535、h=0.25，先扣除名称高度；底图 contain 到 3:2。运行版六章图由 qa:images 复核。",
-      "sha256": "9f9c376538945dd394386c5b2232fab06b87178828c2614a18deb7f12a7a2af7"
-    }
+    "status": "placeholder",
+    "label": "临时底图 · 待替换",
+    "source": "code",
+    "note": "portrait-v1：600×900 代码占位，新团队提供竖版 2:3 底图后替换；旧横图来源见 Git 历史。"
   },
   "C01": {
     "path": "/packages/digital-jiaozi/assets/c01.png",
@@ -38,6 +32,36 @@
   },
   "C05": {
     "path": "/packages/digital-jiaozi/assets/c05.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C06": {
+    "path": "/packages/digital-jiaozi/assets/c06.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C07": {
+    "path": "/packages/digital-jiaozi/assets/c07.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C08": {
+    "path": "/packages/digital-jiaozi/assets/c08.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C09": {
+    "path": "/packages/digital-jiaozi/assets/c09.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C10": {
+    "path": "/packages/digital-jiaozi/assets/c10.png",
     "status": "placeholder",
     "label": "示意 · 素材待替换",
     "source": "code"

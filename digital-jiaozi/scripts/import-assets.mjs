@@ -7,11 +7,19 @@ import {selectAsset} from './asset-selection.mjs';
 const [mode,source]=process.argv.slice(2),base=path.join(root,'miniprogram/packages/digital-jiaozi');
 const manifestPath=path.join(base,'config/asset-manifest.json'),manifest=JSON.parse(await fs.readFile(manifestPath,'utf8'));
 async function importOne(id,file,provenance,approved) {
-  const target=path.join(base,'assets',`${id.toLowerCase()}.png`),size=id==='B01'?900:512;
+  const target=path.join(base,'assets',`${id.toLowerCase()}.png`),size=id==='B01'?600:512;
   const original=await fs.readFile(file);
-  await sharp(original,{limitInputPixels:24000000}).rotate().resize(size,id==='B01'?600:512,{fit:'contain',background:id==='B01'?'#F8F4E9':'#00000000'}).png({compressionLevel:9}).toFile(target+'.tmp');
+  const normalized=await sharp(original,{limitInputPixels:24000000}).rotate().toBuffer();
+  const meta=await sharp(normalized).metadata();
+  if(id==='B01'&&Math.abs(meta.width/meta.height-2/3)>.005)throw new Error('B01 必须是竖版 2:3；不能拉伸或旋转旧横图代替');
+  if(/^C\d{2}$/.test(id)) {
+    const stats=await sharp(normalized).stats(),alpha=stats.channels.at(-1);
+    if(meta.format!=='png'||!meta.hasAlpha||alpha.min===255||alpha.max===0)throw new Error(id+' 必须为同时有透明区和可见主体的 PNG；不透明棋盘格和纯透明图均不可用');
+  }
+  await sharp(normalized).resize(size,id==='B01'?900:512,{fit:'contain',background:id==='B01'?'#F8F4E9':'#00000000'}).png({compressionLevel:9}).toFile(target+'.tmp');
   await fs.rename(target+'.tmp',target);
   manifest[id]={...manifest[id],source:'imported',status:approved?'approved':'review-required',label:approved?'':'导入素材 · 待验收',provenance:{...provenance,sha256:createHash('sha256').update(original).digest('hex')}};
+  delete manifest[id].note;
   console.log(`已压缩导入 ${id}: ${(await fs.stat(target)).size} bytes`);
 }
 if(mode==='--map'&&source) {

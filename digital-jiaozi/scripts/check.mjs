@@ -30,6 +30,9 @@ let count=0;for(const file of await walk(root)) {
 const app=JSON.parse(await fs.readFile(path.join(mini,'app.json'),'utf8'));
 for(const page of [...app.pages,...app.subPackages.flatMap(p=>p.pages.map(f=>p.root+'/'+f))])for(const ext of ['js','json','wxml','wxss'])await fs.access(path.join(mini,page+'.'+ext));
 assert.deepEqual(JSON.parse(await fs.readFile(path.join(root,'shared/rules.json'),'utf8')),JSON.parse(await fs.readFile(path.join(pkg,'config/rules.json'),'utf8')));
+assert.deepEqual(JSON.parse(await fs.readFile(path.join(root,'shared/card-layout.json'),'utf8')),JSON.parse(await fs.readFile(path.join(pkg,'config/card-layout.json'),'utf8')));
+const packageBytes=(await Promise.all((await walk(pkg)).map(f=>fs.stat(f)))).reduce((sum,s)=>sum+s.size,0);
+assert.ok(packageBytes<=2*1024*1024,`分包 ${packageBytes} bytes 超过 2 MiB，请压缩素材或改用团队文件服务`);
 const manifest=JSON.parse(await fs.readFile(path.join(pkg,'config/asset-manifest.json'),'utf8'));
 for(const a of Object.values(manifest)){assert.ok(a.path.startsWith('/packages/digital-jiaozi/'));await fs.access(path.join(mini,a.path));}
-console.log(`检查通过：${count} 个 JS 文件、JSON、分包依赖、页面资源与共享规则同步。此项不代替微信编译/真机验证。`);
+console.log(`检查通过：${count} 个 JS 文件、JSON、分包依赖、页面资源、共享规则/布局同步；分包文件合计 ${packageBytes} bytes / 2 MiB（最终以微信构建为准）。此项不代替微信编译/真机验证。`);

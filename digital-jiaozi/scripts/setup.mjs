@@ -18,5 +18,6 @@ const env=path.join(root,'.env.demo');
 try{await fs.access(env);}catch{await fs.writeFile(env,`DJ_DEMO=true\nDJ_PORT=3307\nDJ_PUBLIC_URL=http://127.0.0.1:3307\nDJ_DATA_DIR=./var/demo\nDJ_DEMO_STAFF_SECRET=${randomBytes(24).toString('base64url')}\n`);}
 await fs.mkdir(path.join(root,'miniprogram/packages/digital-jiaozi/config'),{recursive:true});
 await fs.copyFile(path.join(root,'shared/rules.json'),path.join(root,'miniprogram/packages/digital-jiaozi/config/rules.json'));
+await fs.copyFile(path.join(root,'shared/card-layout.json'),path.join(root,'miniprogram/packages/digital-jiaozi/config/card-layout.json'));
 await import('./placeholders.mjs');
 console.log('独立演示配置就绪；工作人员口令位于本地 .env.demo，不写入前端。');

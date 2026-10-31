@@ -1,6 +1,6 @@
 const {api,activity,run,go}=require('../../services/page');const card=require('../../services/card');
 Page({
-  data:{busy:false,error:'',overview:null,needsClaim:false,page:0,pageCount:1,cells:[],title:'',exportPath:''},
+  data:{busy:false,error:'',overview:null,needsClaim:false,page:0,pageCount:1,cells:[],title:'',exportPath:'',selectedStamp:null},
   async onLoad(query){this.demoAccount=query.demoAccount;await run(this,async()=>{if(this.demoAccount)await api.loginDemo(this.demoAccount);await this.load();});},
   onShow(){if(this.loaded)run(this,()=>this.load());},
   async load(){
@@ -11,6 +11,9 @@ Page({
   claim(){run(this,async()=>{await api.request('/wallets/initialize','POST',{activityId:api.host.activityId()});await this.load();});},
   updatePage(){const count=Math.max(1,Math.ceil(this.data.overview.stamps.length/6)),p=Math.min(this.data.page,count-1);this.setData({page:p,pageCount:count,cells:card.cells(this.data.overview.stamps,p)});},
   flip(e){this.setData({page:Math.max(0,Math.min(this.data.pageCount-1,this.data.page+Number(e.currentTarget.dataset.delta)))});this.updatePage();},
+  openStamp(e){const cell=this.data.cells[Number(e.currentTarget.dataset.index)];if(cell&&cell.stamp)this.setData({selectedStamp:cell.stamp});},
+  closeStamp(){this.setData({selectedStamp:null});},
+  previewStamp(){const url=card.imageUrl(this.data.selectedStamp);if(url)wx.previewImage({urls:[url],fail:()=>wx.showToast({title:'图片暂不可用',icon:'none'})});},
   titleInput(e){this.setData({title:e.detail.value});},
   rename(){run(this,async()=>{await api.request(`/activities/${activity()}/jiaozi`,'PATCH',{title:this.data.title});await this.load();});},
   nav(e){go(e.currentTarget.dataset.page);},

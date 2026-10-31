@@ -59,6 +59,7 @@ export class Commerce {
       nextThreshold:next?.threshold??null,progress:next?Math.min(100,Math.floor(100*(w.lifetime-stage.threshold)/(next.threshold-stage.threshold))):100,
       commemorativeUnlocked:!!w.unlocked_at,physicalCardStatus:physical?.status||(w.unlocked_at?'ELIGIBLE':'LOCKED'),
       stamps:this.repo.all('SELECT id,source,source_id AS sourceId,title,asset_id AS assetId,file_id AS fileId,created_at AS createdAt FROM dj_stamps WHERE user_id=? AND activity_id=? ORDER BY id',user,activity)
+        .map(s=>({...s,assetId:s.source==='OFFICIAL'?(a.places.find(p=>p.id===s.sourceId)?.assetId||s.assetId):s.assetId}))
     };
   }
   tasks(user,activity) {
@@ -77,8 +78,9 @@ export class Commerce {
     return this.repo.transaction(()=>{
       const prior=this.repo.one('SELECT * FROM dj_events WHERE event_id=?',eventId);
       if(prior) { insist(prior.fingerprint===hash,'EVENT_CONFLICT','事件编号已用于不同内容',409); return {...JSON.parse(prior.result),awarded:0,duplicate:true}; }
-      const sourceKey=`${issuer}:${type}:${source.orderId||source.recordId}`;
-      const sourceHash=fingerprint({type,user,activity,source:{...source,recordId:source.orderId?undefined:source.recordId}});
+      const purchase=type==='purchase.verified';
+      const sourceKey=`${issuer}:${type}:${purchase?source.orderId:source.recordId}`;
+      const sourceHash=fingerprint({type,user,activity,source:{...source,recordId:purchase?undefined:source.recordId}});
       const receipt=this.repo.one('SELECT * FROM dj_receipts WHERE source_key=?',sourceKey);
       if(receipt) {
         insist(receipt.fingerprint===sourceHash,'SOURCE_CONFLICT','业务来源编号已用于不同内容',409);

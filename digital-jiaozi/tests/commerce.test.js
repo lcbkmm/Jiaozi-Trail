@@ -8,6 +8,25 @@ import { seedDemo } from '../scripts/seed-demo.mjs';
 import { shanghaiDay } from '../server/domain/errors.js';
 const key=()=>({'Idempotency-Key':randomUUID()});
 const staff={role:'staff',pointIds:['demo-desk']};
+test('非消费事件携带无关 orderId 仍按 recordId 去重，不能跨用户重复奖励',async t=>{
+  const h=await harness(t);h.init();h.init('demo-b');
+  const headers={'x-dj-internal-secret':h.m.config.internalSecret};
+  const event={eventId:randomUUID(),type:'checkin.verified',userId:'demo-a',activityId:activity,occurredAt:new Date(h.now).toISOString(),source:{recordId:'one-real-checkin',placeId:'place-1'}};
+  assert.equal((await h.call('/internal/reward-events','POST',event,null,headers)).data.awarded,40);
+  const replay={...event,eventId:randomUUID(),userId:'demo-b',source:{...event.source,orderId:'unrelated-order'}};
+  const result=await h.call('/internal/reward-events','POST',replay,null,headers);
+  assert.equal(result.code,'SOURCE_CONFLICT');assert.equal(h.m.commerce.wallet('demo-b',activity).lifetime,20);
+});
+test('十个地点有独立素材接口，旧演示记录随当前目录更新素材映射',async t=>{
+  const h=await harness(t);h.init();
+  const places=h.m.commerce.tasks('demo-a',activity).places;
+  assert.equal(new Set(places.map(p=>p.assetId)).size,10);
+  const manifest=JSON.parse(await (await import('node:fs/promises')).readFile(new URL('../miniprogram/packages/digital-jiaozi/config/asset-manifest.json',import.meta.url),'utf8'));
+  for(const p of places)assert.ok(manifest[p.assetId]);
+  h.event('checkin.verified',{placeId:'place-6'});
+  h.m.repo.run("UPDATE dj_stamps SET asset_id='C01' WHERE source_id='place-6'");
+  assert.equal(h.m.commerce.overview('demo-a',activity).stamps[0].assetId,'C06');
+});
 test('演示 A：20→30→70→130→照片仍 130→冰箱贴余额 10→真实二维码核销',async t=>{
   const h=await harness(t),c=h.m.commerce;assert.equal(h.init().lifetimePoints,20);h.init();
   assert.equal(c.daily('demo-a',activity).availablePoints,30);assert.equal(c.daily('demo-a',activity).awarded,0);

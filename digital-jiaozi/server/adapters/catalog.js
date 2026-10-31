@@ -1,7 +1,7 @@
 // Demo fixtures only. Production must inject the team's trusted activity/catalog adapter.
 export const demoActivity = {
   id: 'chengdu_demo', name: '成都记忆 · 演示活动', startsAt: 0, endsAt: 4102444800000,
-  places: ['春熙路','太古里','宽窄巷子','人民公园','锦里','杜甫草堂','安顺廊桥','东郊记忆','望江楼','文殊院'].map((name, i) => ({ id: `place-${i + 1}`, name, assetId: `C0${i % 5 + 1}` })),
+  places: ['春熙路','太古里','宽窄巷子','人民公园','锦里','杜甫草堂','安顺廊桥','东郊记忆','望江楼','文殊院'].map((name, i) => ({ id: `place-${i + 1}`, name, assetId: `C${String(i+1).padStart(2,'0')}` })),
   merchants: ['merchant-1','merchant-2','merchant-3','merchant-4'],
   tasks: ['culture-1','culture-2','culture-3'],
   routes: [{ id: 'route-1', placeIds: ['place-1','place-2','place-3'] }]
