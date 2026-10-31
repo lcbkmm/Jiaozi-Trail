@@ -82,8 +82,10 @@ test('跨上海午夜的完成任务重新核对完成日额度；同任务并�
   await assert.rejects(h.m.jobs.generate('demo-a',jobs[0].id,randomUUID()),e=>e.code==='JOB_BUSY');
   h.m.files.put=put;h.now=nextDay;
   for(const j of jobs.slice(1))await h.m.jobs.generate('demo-a',j.id,randomUUID());
+  h.m.files.remove=async()=>{throw Error('cleanup unavailable');};
   const check=assert.rejects(pending,e=>e.code==='PHOTO_DAILY_LIMIT');release();await check;
   assert.equal(h.m.jobs.owned('demo-a',jobs[0].id).status,'FAILED');
+  assert.equal(h.m.jobs.owned('demo-a',jobs[0].id).reserved_day,null);
   for(const j of jobs.slice(1)){h.m.jobs.attach('demo-a',j.id);h.m.jobs.attach('demo-a',j.id);}
   assert.equal(h.m.commerce.overview('demo-a',activity).stamps.length,3);
 });

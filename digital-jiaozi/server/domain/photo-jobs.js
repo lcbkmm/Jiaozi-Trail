@@ -90,8 +90,9 @@ export class PhotoJobs {
           this.repo.run("UPDATE dj_jobs SET status='READY',result_file=?,success_day=?,reserved_day=NULL,lease_until=NULL,updated_at=? WHERE id=? AND status='GENERATING'",file,day,this.config.clock(),id);
         });
       } catch(error) {
-        await this.files.remove(file);
         this.repo.run("UPDATE dj_jobs SET status='FAILED',error='照片生成失败，可重试；未扣成功次数',reserved_day=NULL,lease_until=NULL,updated_at=? WHERE id=?",this.config.clock(),id);
+        // Releasing the quota must not depend on garbage collection succeeding.
+        try {await this.files.remove(file);}catch{/* Unreferenced files are retried by cleanup. */}
         throw error;
       }
       return this.view(user,id);
