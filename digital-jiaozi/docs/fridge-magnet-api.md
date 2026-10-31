@@ -12,7 +12,7 @@
 | size | 1536x2048 |
 | quality | medium |
 | output_format | png |
-| prompt | `server/magnet/prompt.mjs` 固定模板，有限类别/描述/背景色作为数据 |
+| prompt | `server/magnet/prompt.mjs` 固定模板；默认由模型直接观察照片识别主体、类型并搭配背景色 |
 
 不传 input_fidelity、transparent、2K字符串或未验证参数。成功读取 `data[0].b64_json`，解码后检查 PNG，再把相同字节返回浏览器；没有重编码。响应附实际尺寸和 SHA-256；浏览器再次校验、解码并原样保存 Blob。URL-only/文字响应视为结果未确认，不实现任意远程网址代理，不把供应商临时链接当本地作品。
 
@@ -49,11 +49,15 @@ DJ_MAGNET_ALLOWED_ORIGINS=http://localhost:5188,http://127.0.0.1:5188
 路径前缀 `/api/digital-jiaozi/magnets`：
 
 - `GET /status` → `{configured, model, timeoutMs}`，无凭据内容。
-- `POST /generate`：multipart，字段仅 `requestId / image / category / subjectDescription / backgroundColor / style`。UUID任务号，单图≤15 MiB，JPEG/PNG/WebP、单页、最小8px、≤2400万像素，sharp实际解码。描述1–400字，背景 `#RRGGBB`，style=enamel。其他字段（URL、key、model等）拒绝。
+- `POST /generate`：multipart，最小请求仅需 `requestId / image`，默认 `category=auto / style=enamel`。当前网页显式发送这两个固定选项，不发送描述、颜色或标题。UUID任务号，单图≤15 MiB，JPEG/PNG/WebP、单页、最小8px、≤2400万像素，sharp实际解码。其他字段（URL、key、model等）拒绝。
 - `GET /results/:requestId`：只查询本中转内存缓存；绝不调用供应商。已完成返回相同原图，进行中409，未找到或过期404且uncertain=true。请求号以随机UUID生成，应与作品一起保存，不写入公共地标或NFC地址。
 - 允许 origin 的 OPTIONS 返回精确CORS，非允许origin403。
 
 成功对象：`{requestId,imageBase64,mime,width,height,sha256,provider,model,generatedAt}`；缓存回放附 `replay:true`。错误对象：`{error:{code,message,uncertain}}`，仅安全业务文案，不透出供应商 body、请求头或环境值。
+
+自动识别是同一次图片编辑请求中的模型行为，不额外调用识图API，也不返回结构化分类或地名推断。自动模式中的背景色由模型从照片配色选择。此模式忽略兼容字段 `subjectDescription / backgroundColor` 的内容，并在幂等摘要计算前归一化，避免旧描述干扰结果；字段仍有类型、长度及格式限制。为旧宿主保留显式 `object / scenery / portrait`：该兼容模式要求1–400字描述，可传 `#RRGGBB` 背景（默认米色）。当前游客页面一律使用 auto，重新生成旧草稿时也不会发送旧手填描述。
+
+前后端需一起更新：旧版中转不接受 `auto`。本机更新后重启本模块 `magnet:server`；宿主部署时同步替换模块静态资源及 `server/magnet/`，无需修改队友路由、旅程或积分接口。
 
 单进程上游并发1，IP最短10秒间隔。相同任务号+输入复用缓存；同号不同输入409；同号pending409。超时未知缓存也不自动重试，原始图已成功但本地合成失败不能再次请求供应商。输入摘要包含真实照片和AI相关参数，不包含仅本地使用的标题。
 

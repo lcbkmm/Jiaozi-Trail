@@ -26,7 +26,7 @@ export class PhotoEditor {
       <label class="dj-field">缩放<input aria-label="照片缩放" type="range" min="1" max="4" step="0.01" value="1"></label>
       <button type="button" data-rotate class="dj-button">顺时针旋转 90°</button>
       <label class="dj-field">照片名称<input aria-label="照片名称" maxlength="40" value="旅途的一瞬"></label>
-      ${openMagnet ? '<button type="button" data-open-magnet class="dj-button dj-primary">用这张照片制作 AI 珐琅冰箱贴</button><p class="dj-hint">带入原照片和名称后，请在 AI 工具中重新确认方向、裁切和主体描述，再点击生成。</p>' : ''}
+      ${openMagnet ? '<button type="button" data-open-magnet class="dj-button dj-primary">用这张照片制作 AI 珐琅冰箱贴</button><p class="dj-hint">带入原照片后，直接点击一键生成，AI 自动识别主体，无需填写。</p>' : ''}
       <label class="dj-field">图案模式<select aria-label="图案模式"><option value="color">彩色照片贴片</option><option value="tone">单色记忆</option><option value="outline">线条记忆</option></select></label>
       <label class="dj-field" data-threshold>明暗阈值<input aria-label="明暗阈值" type="range" min="25" max="230" value="140"></label>
       ${adapters.identifyPhoto ? '<button type="button" data-identify class="dj-button">可选：AI 辅助命名（仅填名称）</button>' : ''}

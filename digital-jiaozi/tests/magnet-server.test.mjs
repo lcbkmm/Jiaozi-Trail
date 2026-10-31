@@ -36,6 +36,38 @@ test('provider uploads exact reference bytes with only verified fixed parameters
   });
   assert.equal(calls, 1); assert.deepEqual(Buffer.from(actual.imageBase64, 'base64'), output); assert.equal(actual.sha256, result.sha256);
 });
+
+test('one-click photo-only request reaches the image model once with automatic recognition and color rules; obsolete inputs do not affect replay', async t => {
+  let calls = 0;
+  const url = await server(t, config, input => generateMagnetPanel(input, config, async (_url, options) => {
+    calls++;
+    const body = options.body, prompt = body.get('prompt');
+    assert.deepEqual(Buffer.from(await body.get('image').arrayBuffer()), source);
+    assert.equal(body.get('model'), 'gpt-image-2'); assert.equal(body.get('n'), '1');
+    assert.match(prompt, /自行识别主要主体及类别/); assert.match(prompt, /根据照片配色自动选择/);
+    assert.match(prompt, /人物为主时采用Q版/); assert.match(prompt, /物体为主/); assert.match(prompt, /景观或建筑为主/);
+    assert.doesNotMatch(prompt, /undefined|旧的错误主体|#ff0000/);
+    return Response.json({ data: [{ b64_json: output.toString('base64') }] });
+  }));
+  const body = new FormData(); body.set('requestId', 'request-auto');
+  body.set('image', new Blob([source], { type: 'image/png' }), 'photo.png');
+  const first = await fetch(url + '/generate', { method: 'POST', body });
+  assert.equal(first.status, 200); assert.equal((await first.json()).sha256, result.sha256);
+  const replay = await fetch(url + '/generate', { method: 'POST', body: form('request-auto', { category: 'auto', subjectDescription: '旧的错误主体', backgroundColor: '#ff0000' }) });
+  assert.equal(replay.status, 200); assert.equal((await replay.json()).replay, true); assert.equal(calls, 1);
+});
+
+test('automatic mode still rejects invalid categories, extra parameters, duplicate fields and malformed photos without upstream calls', async t => {
+  let calls = 0; const url = await server(t, config, async () => { calls++; return result; });
+  for (const overrides of [{ category: 'unknown' }, { category: 'auto', style: 'other' }, { category: 'auto', model: 'other' }, { category: 'auto', subjectDescription: 'x'.repeat(401) }, { category: 'scenery', subjectDescription: '' }]) {
+    assert.equal((await fetch(url + '/generate', { method: 'POST', body: form('request-invalid', overrides) })).status, 400);
+  }
+  const duplicate = form('request-duplicate', { category: 'auto' }); duplicate.append('category', 'portrait');
+  assert.equal((await fetch(url + '/generate', { method: 'POST', body: duplicate })).status, 400);
+  const broken = form('request-broken', { category: 'auto' }); broken.set('image', new Blob(['broken'], { type: 'image/png' }), 'broken.png');
+  assert.equal((await fetch(url + '/generate', { method: 'POST', body: broken })).status, 400);
+  assert.equal(calls, 0);
+});
 test('authorization, rate limiting, timeout, invalid image and URL-only response are explicit; never automatically retried', async () => {
   for (const [status, code] of [[401,'UPSTREAM_AUTH'],[429,'UPSTREAM_RATE'],[500,'UPSTREAM_FAILED']]) {
     let calls = 0;

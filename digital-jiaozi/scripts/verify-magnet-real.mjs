@@ -22,9 +22,8 @@ try {
   await page.goto('http://localhost:5188/#/digital-jiaozi/photos');
   await expect(page.locator('.dj-magnet-service')).toContainText('已连接');
   await page.getByLabel('冰箱贴选择照片', { exact: true }).setInputFiles({ name: 'synthetic-reference.png', mimeType: 'image/png', buffer: source });
-  await expect(page.getByLabel('冰箱贴主体描述', { exact: true })).toBeEnabled();
-  await page.getByLabel('冰箱贴主体描述', { exact: true }).fill('程序绘制的测试场景：一栋米黄色小屋，红棕色三角屋顶，两扇蓝色窗户，棕色门，绿色草地，右上角太阳。保留小屋轮廓与配色。');
-  await page.getByLabel('冰箱贴海报标题', { exact: true }).fill('合成场景 · 接入验证');
+  await expect(page.locator('[data-magnet-action=generate]')).toBeEnabled();
+  await expect(page.locator('.dj-magnet textarea, .dj-magnet select, .dj-magnet input[type=color]')).toHaveCount(0);
   await writeFile(receipt, JSON.stringify({ startedAt: new Date().toISOString(), state: 'ABOUT_TO_SEND', input: 'program-drawn-synthetic-building', automaticRetry: false }, null, 2));
   await page.locator('[data-magnet-action=generate]').click();
   await expect(page.locator('.dj-magnet-original')).toBeVisible({ timeout: 240000 });

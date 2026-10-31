@@ -1,4 +1,4 @@
-export type Category = 'object' | 'scenery' | 'portrait';
+export type Category = 'auto' | 'object' | 'scenery' | 'portrait';
 export interface FocusCrop { x: number; y: number; zoom: number }
 export interface PanelCrop { x: number; y: number; width: number; height: number }
 export interface Panel {
@@ -18,7 +18,7 @@ export function newWork(photo: { blob: Blob; width: number; height: number }, or
   const now = new Date().toISOString();
   return { id: newId(), revision: 0, createdAt: now, updatedAt: now, journeyId,
     originalPhoto, sourcePhoto: photo.blob, sourceWidth: photo.width, sourceHeight: photo.height,
-    category: 'scenery', subjectDescription: '', title: '', place: '', year: '', backgroundColor: '#e8e0d4',
+    category: 'auto', subjectDescription: '', title: '', place: '', year: '', backgroundColor: '#e8e0d4',
     style: 'enamel', photoCrop: { x: .5, y: .5, zoom: 1 }, panelCrop: { x: 0, y: 0, width: 1, height: 1 } };
 }
 import { newId } from '../../domain/id.ts';

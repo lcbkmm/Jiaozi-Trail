@@ -37,7 +37,9 @@ export class MagnetClient {
   async generate(work: MagnetWork, timeoutMs: number): Promise<Panel> {
     const requestId = work.task!.id, body = new FormData();
     body.set('requestId', requestId); body.set('image', work.sourcePhoto, 'reference.png');
-    for (const key of ['category', 'subjectDescription', 'backgroundColor', 'style'] as const) body.set(key, work[key]);
+    // The image model identifies the subject from the real photo in the same request.
+    // Old drafts may contain manual instructions; never send them in the one-click flow.
+    body.set('category', 'auto'); body.set('style', 'enamel');
     try {
       const r = await fetch(this.base + '/generate', { method: 'POST', body, signal: AbortSignal.timeout(Math.min(360000, timeoutMs + 30000)) });
       let data;

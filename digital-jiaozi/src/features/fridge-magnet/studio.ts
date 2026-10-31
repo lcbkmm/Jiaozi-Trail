@@ -89,10 +89,6 @@ export class MagnetStudio {
   };
   private readFields() {
     const w = this.work; if (!w) return;
-    for (const name of ['category', 'subjectDescription', 'title', 'place', 'year', 'backgroundColor'] as const) {
-      const input = this.element.querySelector<HTMLInputElement>(`[name="magnet-${name}"]`);
-      if (input) (w as unknown as Record<string, unknown>)[name] = input.value;
-    }
     for (const key of ['x', 'y', 'zoom'] as const) { const input = this.element.querySelector<HTMLInputElement>(`[data-crop="${key}"]`); if (input) w.photoCrop[key] = Number(input.value); }
     const get = (key: string) => Number(this.element.querySelector<HTMLInputElement>(`[data-panel-crop="${key}"]`)?.value || 0) / 100;
     if (this.showComposer) {
@@ -113,7 +109,7 @@ export class MagnetStudio {
       if (this.disposed || token !== this.selection) return false;
       this.work = newWork(photo, file, this.journeyId); this.showComposer = false; this.posterError = ''; this.error = '';
       if (title !== undefined) this.work.title = title.slice(0, 80);
-      this.message = title !== undefined ? '原照片和名称已带入，尚未发送给 AI。请确认方向、裁切并填写主体描述，再点击“生成珐琅冰箱贴”。' : '照片已读取，方向按 EXIF 校正。请检查裁切并填写主体描述，修改后保存草稿。';
+      this.message = title !== undefined ? '原照片和名称已带入，尚未发送给 AI。点击“一键生成珐琅冰箱贴”即可，AI 会自动识别照片主体。' : '照片已就绪，点击“一键生成珐琅冰箱贴”即可。AI 会自动识别主体、选择风格与配色，无需填写。';
       try { await this.persist(); } catch (error) { this.error = this.text(error); }
       return true;
     } catch (error) {
@@ -146,11 +142,11 @@ export class MagnetStudio {
     const status = this.element.querySelector('[data-magnet-status]'); if (status) status.textContent = this.message;
   }
   private async generate() {
-    if (!this.work || this.locked() || !this.configured) return;
+    if (!this.work || !this.repository || this.locked() || !this.configured) return;
     this.readFields();
-    if (!this.work.subjectDescription.trim()) throw new Error('请先填写照片中的主体，1–400字');
     const repeat = !!this.work.task;
     if (repeat && !window.confirm('这是一次新的 AI 生成请求，可能产生供应商费用。上次未确认的请求可能仍在处理；旧原图与海报会保留。确定重新生成？')) return;
+    this.work = { ...this.work, category: 'auto', subjectDescription: '' };
     this.saving = true;
     const repo = this.repository!, requestId = newId();
     try { await this.persist(); this.work = await repo.begin(this.work, requestId, repeat); }
@@ -245,33 +241,29 @@ export class MagnetStudio {
     if (this.disposed) return;
     this.urls.forEach(URL.revokeObjectURL); this.urls = [];
     const w = this.work, locked = this.locked(), pending = w && this.inFlight.has(w.id);
+    const adjustmentsOpen = this.element.querySelector<HTMLDetailsElement>('[data-magnet-adjustments]')?.open ?? false;
     this.element.innerHTML = `<div class="dj-panel"><p class="dj-eyebrow">AI 照片创作</p><h2 tabindex="-1">照片生成珐琅冰箱贴</h2>
-      <p>选择照片 → 填写主体描述 → 点击“生成珐琅冰箱贴”。</p><p class="dj-hint">把照片变成珐琅质感的数字效果图，生成后可另做纪念海报。不增加或扣除旅游积分。${this.options.sample ? '当前为独立示例作品库。' : ''}</p>
+      <p>上传照片，一键生成。AI 自动识别主体和类型、搭配颜色，无需填写。</p><p class="dj-hint">把照片变成珐琅质感的数字效果图，生成后可另做纪念海报。不增加或扣除旅游积分。${this.options.sample ? '当前为独立示例作品库。' : ''}</p>
       <p class="dj-magnet-service">${esc(this.serviceMessage)} <button class="dj-button" data-magnet-action="check-service">检查服务</button></p>
       <div class="dj-magnet-actions"><label class="dj-button dj-primary">选择照片<input type="file" accept="image/jpeg,image/png,image/webp" aria-label="冰箱贴选择照片"></label><label class="dj-button">拍照<input type="file" accept="image/*" capture="environment" aria-label="冰箱贴拍照"></label></div>
       <p class="dj-hint">支持 JPEG / PNG / WebP，最大15 MB、2400万像素。拍照不可用时请选择相册文件。大图副本长边最多2048像素。</p>
       <p role="alert" data-magnet-error class="dj-magnet-error">${esc(this.error)}</p><p role="status" aria-live="polite" data-magnet-status>${esc(this.message)}</p>
-      ${w ? `<div class="dj-magnet-edit"><h3>1. 检查照片与海报下半区</h3><p class="dj-hint">原照片副本 ${w.sourceWidth} × ${w.sourceHeight} px。下方为实际 3:2 裁切，海报将使用同一范围；原文件另存于作品库。</p>
+      ${w ? `<div class="dj-magnet-edit"><img class="dj-magnet-source" src="${this.url(w.sourcePhoto)}" alt="本次用于 AI 生成的完整照片">
+        <div class="dj-magnet-actions"><button class="dj-button dj-primary" data-magnet-action="generate" ${locked || !this.configured || !this.repository ? 'disabled' : ''}>${pending ? '生成中，请稍候…' : w.task ? '重新生成（新请求）' : '一键生成珐琅冰箱贴'}</button></div>
+        <p class="dj-hint">照片将发送至 AI 生成，作品保存在当前浏览器。生成可能需要数十秒；刷新不会自动重新发送。</p>
+        <details data-magnet-adjustments ${adjustmentsOpen ? 'open' : ''}><summary>可选：调整照片方向与海报裁切</summary><p class="dj-hint">无需调整即可生成。AI 使用上方完整照片；下方 3:2 裁切仅用于可选纪念海报。照片副本 ${w.sourceWidth} × ${w.sourceHeight} px，原文件另存于作品库。</p>
         <canvas data-magnet-photo-preview aria-label="海报下半区裁切预览"></canvas>
         <fieldset ${locked ? 'disabled' : ''}><legend>移动照片焦点与缩放</legend>${(['x','y','zoom'] as const).map((key, i) => `<label>${['水平焦点','垂直焦点','照片缩放'][i]}<input type="range" data-crop="${key}" aria-label="冰箱贴${['水平焦点','垂直焦点','照片缩放'][i]}" min="${key === 'zoom' ? 1 : 0}" max="${key === 'zoom' ? 4 : 1}" step="0.01" value="${w.photoCrop[key]}"></label>`).join('')}</fieldset>
         <div class="dj-magnet-actions"><button class="dj-button" data-magnet-action="rotate" ${locked || w.task ? 'disabled' : ''}>旋转照片90°</button><button class="dj-button" data-magnet-action="download-source">下载照片副本</button></div>
-        <fieldset ${locked ? 'disabled' : ''}><legend>2. 确认创作内容</legend>
-          <label>照片类别<select name="magnet-category" aria-label="冰箱贴照片类别">${[['scenery','风景 / 建筑'],['object','物体'],['portrait','人像（Q版）']].map(([key, label]) => `<option value="${key}" ${w.category === key ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
-          <label>主体描述<textarea name="magnet-subjectDescription" aria-label="冰箱贴主体描述" maxlength="400" placeholder="例如：保留桥梁轮廓、河面与两侧建筑">${esc(w.subjectDescription)}</textarea></label>
-          <label>海报标题（选填）<input name="magnet-title" aria-label="冰箱贴海报标题" maxlength="80" value="${esc(w.title)}"></label>
-          <div class="dj-magnet-fields"><label>地点（自填，可空）<input name="magnet-place" aria-label="冰箱贴地点" maxlength="40" value="${esc(w.place)}"></label><label>年份（自填，可空）<input name="magnet-year" aria-label="冰箱贴年份" maxlength="12" value="${esc(w.year)}"></label></div>
-          <label>背景颜色<input type="color" name="magnet-backgroundColor" aria-label="冰箱贴背景颜色" value="${esc(w.backgroundColor)}"></label>
-        </fieldset>
-        <p class="dj-hint">标题、地点、年份只由程序加在海报上。修改这些文字或裁切后，请保存草稿或重新合成；不会自动请求 AI。</p>
-        <div class="dj-magnet-actions"><button class="dj-button" data-magnet-action="save" ${locked ? 'disabled' : ''}>保存草稿</button><button class="dj-button dj-primary" data-magnet-action="generate" ${locked || !this.configured || !this.repository ? 'disabled' : ''}>${pending ? '生成中，请稍候…' : w.task ? '重新生成（新请求）' : '生成珐琅冰箱贴'}</button></div>
-        <p class="dj-hint">照片将发送至 AI 生成，作品保存在当前浏览器。生成可能需要数十秒；刷新不会自动重新发送。</p>
+        </details>
+        <button class="dj-button" data-magnet-action="save" ${locked ? 'disabled' : ''}>保存草稿</button>
         ${w.task && !pending ? `<p class="dj-magnet-task">${w.task.state === 'GENERATING' || w.task.state === 'UNKNOWN' ? '上次请求结果暂未确认，可能仍在供应商处理或计费。不会自动重发。' : w.task.state === 'FAILED' ? '上次生成失败，草稿已保留。' : '生成原图已返回。'} ${esc(w.task.error || '')}</p>${['GENERATING','UNKNOWN'].includes(w.task.state) ? '<button class="dj-button" data-magnet-action="recover">查询本次临时结果（不重新生成）</button>' : ''}` : ''}
-        ${w.panel ? `<div class="dj-magnet-result"><h3>3. 完整生成原图</h3><img class="dj-magnet-original" src="${this.url(w.panel.blob)}" alt="完整 AI 生成原图"><p class="dj-hint">${w.panel.width} × ${w.panel.height} px · ${esc(w.panel.model)} · ${esc(w.panel.provider)}。此原图不裁切、不缩放、不加字。</p>
+        ${w.panel ? `<div class="dj-magnet-result"><h3>完整生成原图</h3><img class="dj-magnet-original" src="${this.url(w.panel.blob)}" alt="完整 AI 生成原图"><p class="dj-hint">${w.panel.width} × ${w.panel.height} px · ${esc(w.panel.model)} · ${esc(w.panel.provider)}。此原图不裁切、不缩放、不加字。</p>
         <div class="dj-magnet-actions"><button class="dj-button dj-primary" data-magnet-action="download-panel">下载生成原图</button><a class="dj-button" href="${this.url(w.panel.blob)}" target="_blank" rel="noopener">打开生成原图</a><button class="dj-button" data-magnet-action="show-composer" ${locked ? 'disabled' : ''}>制作纪念海报</button></div><p class="dj-hint">手机未自动保存相册时，可打开原图长按保存，或在浏览器下载列表查找。</p></div>` : ''}
         ${this.showComposer && w.panel ? this.composer(w, locked) : ''}
         ${w.poster ? `<div class="dj-magnet-result"><h3>纪念海报 · 独立导出</h3><img class="dj-magnet-poster" src="${this.url(w.poster.blob)}" alt="已合成纪念海报"><p>${w.poster.width} × ${w.poster.height} px · 3:4 · 上下各50%</p><p class="dj-hint">这是最近一次合成，调整参数后请重新合成。效果图不等于生产刀模。</p><div class="dj-magnet-actions"><button class="dj-button" data-magnet-action="download-poster">下载纪念海报</button><a class="dj-button" href="${this.url(w.poster.blob)}" target="_blank" rel="noopener">打开海报长按保存</a></div></div>` : ''}
       </div>` : ''}</div>
-      <section class="dj-panel"><h2>本机冰箱贴作品库 · ${this.works.length}</h2><p class="dj-hint">草稿、原照片、生成原图和海报保存在当前浏览器。更换浏览器或清除网站数据会丢失，请及时下载。</p><div class="dj-magnet-library">${this.works.map(item => `<button class="dj-magnet-card" data-magnet-action="open" data-id="${item.id}"><img src="${this.url(item.panel?.blob || item.sourcePhoto)}" alt="${esc(item.title || '未命名作品')}"><span>${esc(item.title || item.subjectDescription || '未命名草稿')}</span><small>${item.panel ? '有生成原图' : item.task ? '有生成记录' : '草稿'}${item.poster ? ' · 有海报' : ''}</small></button>`).join('')}</div></section>`;
+      <section class="dj-panel"><h2>本机冰箱贴作品库 · ${this.works.length}</h2><p class="dj-hint">草稿、原照片、生成原图和海报保存在当前浏览器。更换浏览器或清除网站数据会丢失，请及时下载。</p><div class="dj-magnet-library">${this.works.map(item => `<button class="dj-magnet-card" data-magnet-action="open" data-id="${item.id}"><img src="${this.url(item.panel?.blob || item.sourcePhoto)}" alt="${esc(item.title || '旅行照片作品')}"><span>${esc(item.title || '旅行照片作品')}</span><small>${item.panel ? '有生成原图' : item.task ? '有生成记录' : '草稿'}${item.poster ? ' · 有海报' : ''}</small></button>`).join('')}</div></section>`;
     void this.updateCropPreview();
     this.updatePanelOverlay();
   }

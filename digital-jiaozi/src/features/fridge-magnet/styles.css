@@ -14,6 +14,8 @@
 .dj-app .dj-magnet input[type=color] { display: block; width: 70px; height: 42px; margin-top: 8px; }
 .dj-app .dj-magnet-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .dj-app .dj-magnet canvas { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; border-radius: 8px; background: #eee; }
+.dj-app .dj-magnet-source { display: block; width: 100%; max-height: 320px; object-fit: contain; border-radius: 8px; background: #f2eee7; }
+.dj-app .dj-magnet details { margin: 18px 0; }
 .dj-app .dj-magnet-original, .dj-app .dj-magnet-poster { display: block; width: 100%; height: auto; max-height: 680px; object-fit: contain; background: #f2eee7; }
 .dj-app .dj-magnet-result, .dj-app .dj-magnet-composer { padding-top: 12px; margin-top: 22px; border-top: 1px solid #ded7cb; }
 .dj-app .dj-magnet-crop-stage { position: relative; width: 100%; max-width: 380px; margin: 0 auto; }

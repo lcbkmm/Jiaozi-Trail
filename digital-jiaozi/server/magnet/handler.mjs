@@ -42,8 +42,13 @@ export function createMagnetHandler(config, { generate = generateMagnetPanel } =
       catch { throw new MagnetError('FORM', '照片上传格式无法读取'); }
       const fields = ['requestId', 'image', 'category', 'subjectDescription', 'backgroundColor', 'style'];
       if ([...form.keys()].some(k => !fields.includes(k) || form.getAll(k).length !== 1)) throw new MagnetError('INPUT', '生成参数无效');
-      const requestId = form.get('requestId'), image = form.get('image'), category = form.get('category'), subjectDescription = form.get('subjectDescription'), backgroundColor = form.get('backgroundColor'), style = form.get('style');
-      if (typeof requestId !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{7,159}$/.test(requestId) || !(image instanceof File) || !['object', 'scenery', 'portrait'].includes(category) || typeof subjectDescription !== 'string' || !subjectDescription.trim() || subjectDescription.length > 400 || typeof backgroundColor !== 'string' || !/^#[a-fA-F0-9]{6}$/.test(backgroundColor) || style !== 'enamel') throw new MagnetError('INPUT', '请填写类别、1–400字主体描述和有效背景色');
+      const requestId = form.get('requestId'), image = form.get('image');
+      const category = form.get('category') ?? 'auto', style = form.get('style') ?? 'enamel';
+      const description = form.get('subjectDescription') ?? '', color = form.get('backgroundColor') ?? '#e8e0d4';
+      if (typeof requestId !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{7,159}$/.test(requestId) || !(image instanceof File) || !['auto', 'object', 'scenery', 'portrait'].includes(category) || typeof description !== 'string' || description.length > 400 || typeof color !== 'string' || !/^#[a-fA-F0-9]{6}$/.test(color) || style !== 'enamel' || category !== 'auto' && !description.trim()) throw new MagnetError('INPUT', '照片或生成参数无效，请重新选择照片后生成');
+      // Canonical automatic inputs ignore obsolete manual fields, including for replay fingerprints.
+      const subjectDescription = category === 'auto' ? '' : description.trim();
+      const backgroundColor = category === 'auto' ? '#e8e0d4' : color;
       const referenceImage = Buffer.from(await image.arrayBuffer());
       const fingerprint = createHash('sha256').update(referenceImage).update(JSON.stringify([category, subjectDescription, backgroundColor, style])).digest('hex');
       for (const [key, entry] of attempts) if (!entry.pending && Date.now() - entry.at > config.cacheMs) removeAttempt(key, entry);
