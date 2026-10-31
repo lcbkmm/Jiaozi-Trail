@@ -1,0 +1,2 @@
+const manifest=require('../../config/asset-manifest.json');
+Component({options:{styleIsolation:'isolated'},properties:{assetId:{type:String,value:''},src:{type:String,value:''},showLabel:{type:Boolean,value:true}},data:{url:'',label:'',failed:false},observers:{'assetId,src':function(id,src){const a=manifest[id];this.setData({url:src||(a&&a.path)||'',label:src?'照片自制':(a&&a.label)||'示意',failed:false});}},methods:{failed(){this.setData({failed:true});}}});

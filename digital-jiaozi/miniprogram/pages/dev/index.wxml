@@ -1,0 +1,1 @@
+<view class="dj-dev"><text class="dj-title">循交子之迹，留一城记忆</text><text>这是模块独立调试壳。活动、地点与商品均为演示。</text><button data-account="demo-a" bindtap="enter">路径 A · 从首次领取开始</button><button data-account="demo-b" bindtap="enter">路径 B · 590 分历史账户</button><button bindtap="staff">工作人员演示入口</button><text>先运行服务、种子脚本，并配置分包中的服务地址。真机需可访问的合法 HTTPS 域名。</text></view>
