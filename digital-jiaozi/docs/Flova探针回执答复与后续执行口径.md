@@ -1,3 +1,5 @@
+> 历史文档：当前运行链路已改为手机 Web，取消升级及旧积分。请先读 README.md、docs/integration.md 和 docs/assets-handoff.md；不要执行本文的旧平台/旧素材任务。
+
 # Flova 探针回执答复与后续执行口径
 
 日期：2026 年 10 月 31 日。

@@ -1,0 +1,117 @@
+{
+  "B01": {
+    "path": "/packages/digital-jiaozi/assets/b01.png",
+    "status": "placeholder",
+    "label": "临时底图 · 待替换",
+    "source": "code",
+    "note": "portrait-v1：600×900 代码占位，新团队提供竖版 2:3 底图后替换；旧横图来源见 Git 历史。"
+  },
+  "C01": {
+    "path": "/packages/digital-jiaozi/assets/c01.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C02": {
+    "path": "/packages/digital-jiaozi/assets/c02.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C03": {
+    "path": "/packages/digital-jiaozi/assets/c03.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C04": {
+    "path": "/packages/digital-jiaozi/assets/c04.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C05": {
+    "path": "/packages/digital-jiaozi/assets/c05.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C06": {
+    "path": "/packages/digital-jiaozi/assets/c06.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C07": {
+    "path": "/packages/digital-jiaozi/assets/c07.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C08": {
+    "path": "/packages/digital-jiaozi/assets/c08.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C09": {
+    "path": "/packages/digital-jiaozi/assets/c09.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "C10": {
+    "path": "/packages/digital-jiaozi/assets/c10.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "D01": {
+    "path": "/packages/digital-jiaozi/assets/d01.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "D02": {
+    "path": "/packages/digital-jiaozi/assets/d02.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "D03": {
+    "path": "/packages/digital-jiaozi/assets/d03.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "E01": {
+    "path": "/packages/digital-jiaozi/assets/e01.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "E02": {
+    "path": "/packages/digital-jiaozi/assets/e02.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "E03": {
+    "path": "/packages/digital-jiaozi/assets/e03.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "E04": {
+    "path": "/packages/digital-jiaozi/assets/e04.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  },
+  "E05": {
+    "path": "/packages/digital-jiaozi/assets/e05.png",
+    "status": "placeholder",
+    "label": "示意 · 素材待替换",
+    "source": "code"
+  }
+}
