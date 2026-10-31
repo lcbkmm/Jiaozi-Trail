@@ -1,0 +1,37 @@
+{
+  "name": "digital-jiaozi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "start": "node --env-file-if-exists=.env server/standalone.js",
+    "demo": "node --env-file=.env.demo server/standalone.js",
+    "seed": "node --env-file-if-exists=.env scripts/database.mjs seed",
+    "migrate": "node --env-file-if-exists=.env scripts/database.mjs migrate",
+    "reset:demo": "node --env-file-if-exists=.env scripts/database.mjs reset",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "check": "node scripts/check.mjs",
+    "fixtures": "node scripts/fixtures.mjs",
+    "assets:import": "node scripts/import-assets.mjs",
+    "compile:wechat": "node scripts/compile-wechat.mjs",
+    "qa:images": "node scripts/qa-images.mjs",
+    "demo:seed": "node --env-file=.env.demo scripts/database.mjs seed",
+    "demo:reset": "node --env-file=.env.demo scripts/database.mjs reset"
+  },
+  "dependencies": {
+    "express": "5.1.0",
+    "fontkit": "2.0.4",
+    "multer": "2.5.0",
+    "qrcode": "1.5.4",
+    "sharp": "0.35.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "0.1.80",
+    "jsqr": "1.4.0"
+  }
+}

@@ -21,3 +21,11 @@ __pycache__/
 .DS_Store
 Thumbs.db
 *.log
+
+# Module-owned runtime data, private photos, previews and generated evidence
+var/
+.env.demo
+server/fonts/*.otf
+server/fonts/*.ttf
+miniprogram/project.private.config.json
+*.sqlite*
