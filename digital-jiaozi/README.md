@@ -53,10 +53,12 @@ npm run qa:images
 ## 接入与素材
 
 - [integration.md](docs/integration.md)：分包注册、宿主身份/跳转、router 挂载、事件契约、照片接口、关闭 demo。
-- [assets-handoff.md](docs/assets-handoff.md)：新版章位、B01 来源、占位映射、严格筛选及导入。
+- [给图片制作 AI 的交接](docs/给图片制作AI的交接.md)：16 张图片的对象、类型、尺寸与安装接口，不约定美学设计。
+- [assets-handoff.md](docs/assets-handoff.md)：占位状态、竖版章位、压缩导入与失败回退。
+- [代码审查与修复记录](docs/代码审查与修复记录.md)：原提交的确认问题、修复、回归与待联调事项。
 - [development-status.md](docs/development-status.md)：实现范围、验证证据、未联调事项。
 - [最新开发交接](docs/新窗口开发提示词.md)、[总体方案](docs/数字交子模块总体方案.md)：产品依据，照片章与新版章位优先遵循最新交接。
 
-只迁入 `miniprogram/packages/digital-jiaozi/`；独立壳不覆盖团队 `app.*`，不新增全项目 tabBar。服务端入口 `server/index.js` 返回可挂载 router，`server/standalone.js` 用于独立演示。共享规则源 `shared/rules.json`，前端副本经 `setup` 同步。
+只迁入 `miniprogram/packages/digital-jiaozi/`；独立壳不覆盖团队 `app.*`，不新增全项目 tabBar。服务端入口 `server/index.js` 返回可挂载 router，`server/standalone.js` 用于独立演示。共享业务规则源 `shared/rules.json`，竖版主卡布局源 `shared/card-layout.json`，前端副本经 `setup` 同步。主卡 2:3、两列三行，导出完整 1200×1800 票面；正式美术暂缺，运行占位可直接替换。
 
 Git 沿用外层仓库，只暂存检查过的明确文件。不要批量加入另一窗口的 `assets-source/`、回执或工具；不强推、不自动合并 main。字体二进制、用户照片、数据库、秘密配置、依赖和验证图均忽略，不能作为运行素材提交。

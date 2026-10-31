@@ -1,52 +1,46 @@
-# 数字交子素材交接
+# 数字交子素材接入说明
 
-运行素材集中在 `miniprogram/packages/digital-jiaozi/assets/`，映射为同分包 `config/asset-manifest.json`。页面和 Canvas 读取逻辑编号，不读取 `assets-source/`。本轮没有修改另一工作区的源图、asset-map 或 Flova 回执。
+2026-10-31 更新。给制作方的独立任务见 [给图片制作 AI 的交接](给图片制作AI的交接.md)，主卡运行几何见 [竖版布局](主卡竖版布局与素材接口.md)。新团队从零制作；历史 Flova 方案、横版图和验收决策不作为此次美学约束。
 
-## 当前映射
+## 当前缺口
 
-| 编号 | 分包内路径 | 状态与用途 |
-| --- | --- | --- |
-| B01 | `assets/b01.png` | 已导入验收底图，900×600，658,140 bytes；全部成长阶段共用 |
-| C01–C05 | `assets/c01.png`–`c05.png` | 代码生成的可区分地点章占位；显示“示意 · 素材待替换” |
-| D01–D03 | `assets/d01.png`–`d03.png` | 代码示例占位，只用于风格参考；不进入用户照片章生成链路 |
-| E01–E05 | `assets/e01.png`–`e05.png` | 明信片、冰箱贴、钥匙扣、实体纪念卡、熊猫玩偶占位；不代表真实商品照片 |
+运行必需素材共 16 张：竖版底图 B01、十个地点透明章 C01–C10、五张商品图 E01–E05。当前全部是可替换占位，尚无本轮正式美术。B01 已从旧横图换为 600×900 的代码占位。D01–D03 仅为历史示例占位，当前页面不消费，不列入必做。
 
-B01 从原工作区 `D:\Codex\Jiaozi-Trail\digital-jiaozi\assets-source\cards\jiaozi-basic.png` 只读压缩导入，源 resourceId 为 `236da774fcdb4894b4e2c8bf7953e3f0`，源文件 SHA256 为 `9f9c376538945dd394386c5b2232fab06b87178828c2614a18deb7f12a7a2af7`。完整来源与验收处理决策保存在 manifest 的 provenance 中。
+运行文件在 `miniprogram/packages/digital-jiaozi/assets/`；逻辑映射为同分包 `config/asset-manifest.json`。页面和 Canvas 只读运行文件及映射，不直接读取源图目录。动态用户照片经服务端生成，不写 manifest、不提交到仓库。
 
-C01 的源素材验收备注尚需细节复验，本轮保留占位。G01 不属于当前分包依赖；F03-PROBE 为探针，未导入。不能因为源记录 `selected=true` 就认定已验收。
+## 导入单张素材
 
-## B01 章位与替换验收
+源图建议保存在模块 `assets-source/cards/`、`stamps/`、`products/`。在实现工作区执行，例如：
 
-规则源 `shared/rules.json` 经 `npm run setup` 同步为分包 `config/rules.json`。三列左边界 x 为 0.07/0.38/0.69，两行顶边界 y 为 0.215/0.535；每单元宽 0.24、高 0.25。坐标相对于 3:2 票面，单元高度**包含图案、间距和名称**。`services/card-layout.js` 先预留名称高度与间距，再计算正方形图案大小，页面和 Canvas 共用该函数。
+```powershell
+npm run assets:import -- B01 D:\Codex\Jiaozi-Trail\digital-jiaozi\assets-source\cards\jiaozi-basic-portrait.png
+npm run assets:import -- C01 D:\Codex\Jiaozi-Trail\digital-jiaozi\assets-source\stamps\c01-chunxi-road.png
+```
 
-底图等比 contain 到 3:2 容器；成长装饰、标题、编号和印章由代码叠加。名称超出 7 字符显示前 6 字符加省略号，完整名称仍由服务端保存。不要换回旧 0.30 行高，也不要在换素材时单独改页面坐标。
+脚本保留源文件，写对应运行 PNG 和 manifest，记录源 SHA256，默认 `review-required`。开发方实际验收后将 `status` 改为 `approved`、`label` 改为空。新的来源记录替代旧 provenance，并清除旧占位 note。
 
-运行 `npm run qa:images`，检查 `var/qa/six-stamps-phone-size.png` 的 343 像素宽六章主卡，以及 `three-backgrounds.png` 的白/暖纸/竹青三种背景。二者都是代码合成验证图，**不是微信页面截图**。照片章由合成测试照片真实处理得到；另用 `npm test` 执行实际分包 Canvas 导出函数，输出 `var/qa/canvas-export.png`，包含真实 HTTP 照片章与故意失效图片的回退。
+B01 校验 2:3 后等比压到 600×900，横版输入被拒绝；其他压到 512²。C 类必须是同时含透明区与可见主体的 PNG；脚本能检测 Alpha，但不能自动识别被画进图片内容的棋盘格，仍需看实际图。E 类可不透明。源图尺寸及全量映射见制作方交接。
 
-## 导入正式素材
+所有等级共用一张 B01。主卡布局为两列三行，由 `shared/card-layout.json` 经 setup 同步，页面和 Canvas 共用算法。标题、等级、编号、页码、章图及名称由代码叠加。改图片不改积分、照片或订单流程；新增地点需维护服务端 catalog 的 `assetId`。
 
-在本模块目录执行，例如：
+## 历史 map 导入（可选）
+
+新团队不需要供应商 ID 或旧回执即可使用上面的单张导入。只有继续使用已有 map 时才执行：
 
 ```powershell
 npm run assets:import -- --map D:\Codex\Jiaozi-Trail\digital-jiaozi\assets-source\asset-map.json
 ```
 
-脚本严格检查正式编号、当前 manifest 依赖、selected、有效 targetPath、PASS/PASS_WITH_NOTE 和验收备注。含备注的素材只有在 `scripts/asset-acceptance.json` 中存在**与当前 qaNote 精确匹配**的处理决策才能导入；探针、无目标路径和未处理备注会输出跳过原因。路径经 realpath 校验不得离开该素材根目录。B01 的处理决策已记录，其余新增决策需先看实际图再写。
+此模式严格检查正式编号、selected、有效 targetPath、PASS/PASS_WITH_NOTE，以及 `scripts/asset-acceptance.json` 中与当前 qaNote 精确匹配的处理决策；探针、无目标和未处理备注跳过。源路径不得离开 map 所在目录。旧横版 B01 决策已清空，不能将旧批准记录用于新竖图。新增决策必须由维护者实际验收后写入。
 
-也可先手动导入待审图：
+## 验收和回退
 
-```powershell
-npm run assets:import -- C01 D:\Codex\Jiaozi-Trail\digital-jiaozi\assets-source\stamps\place.png
-```
+执行 `npm run check`、`npm run compile:wechat`、`npm test`、`npm run qa:images`。静态检查含分包 2 MiB 文件预算，最终体积以微信构建为准。导入正式图片后重新看透明边缘、手机尺寸可读性、六章与长名称，并在微信工具/真机验证加载、点击与导出。
 
-手动导入标为 `review-required`，显示“导入素材 · 待验收”，不会自动宣称正式通过。验收后由维护者明确更新状态和标签，或补齐源 map 的记录与处理决策再走 map 导入。
+`var/qa/three-backgrounds.png` 为照片处理的三背景透明度测试；`six-stamps-screen-320/375/430.png` 为不同屏宽的竖版六章合成图；`canvas-export.png` 为实际分包导出函数在本地 Canvas 实现下的结果，包含真实 HTTP 照片章及故意失效的图片回退。它们都不是小程序截图，不纳入正式素材提交。
 
-脚本保留源图，只覆盖本分包对应运行 PNG 与 manifest；B01 contain 压到 900×600，其他 contain 压到 512²、透明补边。源 SHA256 用于追溯。导入前后审阅 Git diff、运行体积和视觉效果；不要直接提交 2048 原图整包。`setup` 只补齐缺失占位，不覆盖已存在的正式运行素材。
+`dj-image` 加载失败显示“暂缺”；Canvas 保留底色/边框，逐章画回退，其他图片继续导出。`setup` 只补缺失占位，不覆盖现有正式运行图。私有照片通过受限媒体 URL 下载到临时文件后进入 Canvas。
 
-组件 `dj-image` 的网络/本地图失败会显示“暂缺”；Canvas 下载失败会在该位置绘制示意回退，其余章继续导出。私有照片 PNG 由服务端受限媒体 URL 提供，先下载成临时文件再画入 Canvas；不写入 manifest，也不提交用户照片。
+## 文件边界
 
-## 字体与私人文件
-
-服务端中文名称由固定 Noto CJK Sans 2.004 字体转换为矢量路径再渲染，不依赖系统字体。`npm run setup` 下载并核验 SHA256，文件位于忽略的 `server/fonts/NotoSansCJKsc-Regular.otf`，完整 OFL 授权随代码在 `server/fonts/OFL.txt`。换部署环境需先执行 setup，不能把缺字的结果视为生成成功。
-
-数据库、原照片、预览、最终私人章和测试图均在被忽略的 `var/` 下。运行素材 PNG 可提交；用户图片、字体二进制、`.env.demo`、密钥及其他窗口产物不纳入本轮 Git 提交。
+字体由 setup 下载固定 Noto CJK Sans 2.004 并校验 SHA256，授权见 `server/fonts/OFL.txt`。字体二进制、原照片、预览、私人章、数据库、密钥、依赖和验证图均忽略。运行 PNG 可提交；只暂存明确改动，不把另一窗口的源图或回执批量加入。

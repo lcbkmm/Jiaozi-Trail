@@ -33,6 +33,8 @@
 
 前端存储均 `dj:` 前缀；所有页面仅经 `services/api.js` 请求，不读 `getApp().globalData`。默认壳的会话仅用于 demo，正式集成替换 host 接口并清除旧演示会话。
 
+主卡为竖版 2:3、两列三行，导出完整 1200×1800 票面；不要复用旧横版章位。维护源为 `shared/card-layout.json`，setup 同步至分包 config，页面和 Canvas 共用算法。静态必需图为 B01、C01–C10、E01–E05，目前为可替换占位；图片制作交接见 `给图片制作AI的交接.md`。旧官方章在 overview 中优先使用当前地点目录的 assetId，无需重置已有用户数据。
+
 ## 2. 服务端挂载与部署
 
 ```js
@@ -145,7 +147,7 @@ POST `/internal/reward-events`，与用户会话入口分开鉴权。完整请�
 | culture_task.completed | recordId、taskId | +60，同任务每活动一次，每日最多 2 项 |
 | route.completed | recordId、routeId、placeIds | +80，每活动一次；快照匹配目录，至少 3 个不同地点且已有全部官方章 |
 
-返回 `{awarded:40,duplicate:false,dailyCapped:false,demo:false}`。重复返回 awarded=0。eventId 全局唯一并保存内容 fingerprint；同 ID 改内容返回 EVENT_CONFLICT。来源名+事件类型+orderId/recordId 永久去重，每条已接收来源（包括当天同门店被去重的其他订单）都登记，不能换 ID/换日重放。来源改用户、活动或内容返回 SOURCE_CONFLICT；语义去重由用户+活动+地点/门店日/任务/活动路线独立保护。
+返回 `{awarded:40,duplicate:false,dailyCapped:false,demo:false}`。重复返回 awarded=0。eventId 全局唯一并保存内容 fingerprint；同 ID 改内容返回 EVENT_CONFLICT。业务来源键为来源名+事件类型+来源 ID：只有 purchase.verified 使用 orderId，其余使用 recordId，即使附带无关 orderId 也不能改变来源键。每条已接收来源（包括当天同门店被去重的其他订单）都登记，不能换 ID/换日重放。来源改用户、活动或内容返回 SOURCE_CONFLICT；语义去重由用户+活动+地点/门店日/任务/活动路线独立保护。
 
 每日计数采用**服务端接收处理时的上海日**，不由客户端时间或 occurredAt 选择奖励日期。occurredAt 仅审计和七日接收窗口校验；超出七日拒绝 EVENT_TIME。若队友要求历史按发生日补记，需要另议受控导入契约。消费撤销奖励、真实支付、定位验证不在本模块范围。
 
