@@ -4,7 +4,7 @@
 
 ## 最小挂载
 
-宿主允许处理 TypeScript/CSS 时直接导入；否则先在本模块 `npm ci && npm run build:module`，使用 `dist-module/digital-jiaozi.js` 和 `digital-jiaozi.css`，并复制 `public/assets/landmarks/` 到宿主静态资源目录。不要复制 node_modules、var 或 legacy。
+宿主允许处理 TypeScript/CSS 时直接导入；否则先在本模块 `npm ci && npm run build:module`，使用 `dist-module/digital-jiaozi.js` 和 `digital-jiaozi.css`，并部署构建复制的 `assets/`，包含 `landmarks/` 和 `fonts/`（保留字体许可）。不要复制 node_modules、var 或 legacy。完整功能与合并清单见[全板块说明](数字交子全板块说明与队友接入.md)。
 
 ```ts
 import { mountDigitalJiaozi } from './digital-jiaozi/src/module';
@@ -27,7 +27,7 @@ const api = await mountDigitalJiaozi(document.querySelector('#jiaozi')!, {
 // 离开宿主页面时：api.destroy()
 ```
 
-`hostRouter` 仅示例占位，由宿主传自己的函数，不是模块要求的全局变量。可选 `identifyPhoto(blob)` 由宿主服务器中转；只有用户主动点击 AI 按钮才调用，没有适配器时按钮禁用且可手动完成。前端不得注入密钥/VITE_* 密钥，不默认调用任何候选网关或模型。
+`hostRouter` 仅示例占位，由宿主传自己的函数，不是模块要求的全局变量。可选 `identifyPhoto(blob)` 由宿主服务器中转；只有用户主动点击辅助命名按钮才调用，没有适配器时不显示该按钮且可手动完成。这是本地照片工具的命名接口，与独立珐琅生图服务分别配置。前端不得注入密钥/VITE_* 密钥；该可选命名接口不默认调用任何候选网关或模型。
 
 ## 目录、活动与地标映射
 
