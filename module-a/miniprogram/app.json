@@ -1,0 +1,13 @@
+{
+  "pages": [
+    "pages/explore/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "交子寻味",
+    "navigationBarBackgroundColor": "#f5f3ee",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f5f3ee"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

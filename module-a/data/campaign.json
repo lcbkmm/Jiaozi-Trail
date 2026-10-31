@@ -1,0 +1,197 @@
+{
+  "campaign_id": "chunxi_demo_2026",
+  "version": 1,
+  "source": "demo",
+  "notice": "营业/活动时间、消费、排队、福利均为演示配置，未经商户确认。",
+  "stops": [
+    {
+      "stop_id": "stop_ifs",
+      "place_id": "ifs",
+      "title": "IFS 地标打卡",
+      "category": "landmark",
+      "interests": [
+        "landmark",
+        "photo"
+      ],
+      "dwell_s": 1200,
+      "cost_min_fen": 0,
+      "cost_max_fen": 0,
+      "windows": [
+        {
+          "opens": "10:00",
+          "closes": "21:00"
+        }
+      ],
+      "queue_s": 300,
+      "status": "open",
+      "source": "demo",
+      "benefits": []
+    },
+    {
+      "stop_id": "stop_taikoo",
+      "place_id": "taikoo",
+      "title": "太古里首发漫游（演示）",
+      "category": "landmark",
+      "interests": [
+        "launch",
+        "photo"
+      ],
+      "dwell_s": 1800,
+      "cost_min_fen": 0,
+      "cost_max_fen": 0,
+      "windows": [
+        {
+          "opens": "10:00",
+          "closes": "21:00"
+        }
+      ],
+      "queue_s": 300,
+      "status": "open",
+      "source": "demo",
+      "benefits": [
+        {
+          "title": "首发体验小样（演示）",
+          "conditions": "仅为活动流程演示；非真实商户福利。",
+          "inventory_status": "unknown",
+          "is_demo": true
+        }
+      ]
+    },
+    {
+      "stop_id": "stop_daci",
+      "place_id": "daci",
+      "title": "街区文化停留（演示）",
+      "category": "culture",
+      "interests": [
+        "culture",
+        "photo"
+      ],
+      "dwell_s": 1800,
+      "cost_min_fen": 0,
+      "cost_max_fen": 0,
+      "windows": [
+        {
+          "opens": "10:00",
+          "closes": "21:00"
+        }
+      ],
+      "queue_s": 0,
+      "status": "open",
+      "source": "demo",
+      "benefits": []
+    },
+    {
+      "stop_id": "stop_tea",
+      "place_id": "tea",
+      "title": "茶饮休息（演示预算）",
+      "category": "tea",
+      "interests": [
+        "tea"
+      ],
+      "dwell_s": 1200,
+      "cost_min_fen": 1800,
+      "cost_max_fen": 3000,
+      "windows": [
+        {
+          "opens": "10:00",
+          "closes": "21:00"
+        }
+      ],
+      "queue_s": 300,
+      "status": "open",
+      "source": "demo",
+      "benefits": []
+    },
+    {
+      "stop_id": "stop_coffee",
+      "place_id": "coffee",
+      "title": "咖啡休息（演示预算）",
+      "category": "coffee",
+      "interests": [
+        "coffee"
+      ],
+      "dwell_s": 1500,
+      "cost_min_fen": 3000,
+      "cost_max_fen": 5000,
+      "windows": [
+        {
+          "opens": "10:00",
+          "closes": "21:00"
+        }
+      ],
+      "queue_s": 300,
+      "status": "open",
+      "source": "demo",
+      "benefits": []
+    },
+    {
+      "stop_id": "stop_longchaoshou",
+      "place_id": "longchaoshou",
+      "title": "成都小吃正餐（演示预算）",
+      "category": "meal",
+      "interests": [
+        "food",
+        "local"
+      ],
+      "dwell_s": 2400,
+      "cost_min_fen": 4000,
+      "cost_max_fen": 7000,
+      "windows": [
+        {
+          "opens": "10:00",
+          "closes": "21:00"
+        }
+      ],
+      "queue_s": 600,
+      "status": "open",
+      "source": "demo",
+      "benefits": []
+    },
+    {
+      "stop_id": "stop_hotpot",
+      "place_id": "hotpot",
+      "title": "火锅正餐（演示预算）",
+      "category": "meal",
+      "interests": [
+        "food",
+        "hotpot"
+      ],
+      "dwell_s": 4200,
+      "cost_min_fen": 10000,
+      "cost_max_fen": 15000,
+      "windows": [
+        {
+          "opens": "10:00",
+          "closes": "21:00"
+        }
+      ],
+      "queue_s": 900,
+      "status": "open",
+      "source": "demo",
+      "benefits": []
+    },
+    {
+      "stop_id": "stop_muji",
+      "place_id": "muji",
+      "title": "生活方式逛店（演示）",
+      "category": "lifestyle",
+      "interests": [
+        "lifestyle",
+        "launch"
+      ],
+      "dwell_s": 1500,
+      "cost_min_fen": 0,
+      "cost_max_fen": 0,
+      "windows": [
+        {
+          "opens": "10:00",
+          "closes": "21:00"
+        }
+      ],
+      "queue_s": 0,
+      "status": "open",
+      "source": "demo",
+      "benefits": []
+    }
+  ]
+}
