@@ -52,6 +52,70 @@ async function downloaded(page: Page, action: string, filename: string) {
   const download = await pending; await download.saveAs(filename); return readFile(filename);
 }
 
+test('默认AI入口与本地贴片分开；带入原照片及名称不请求AI，主动生成才发单', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+  const calls = await mock(page); await page.goto(photos);
+  await expect(page.getByRole('heading', { name: '照片生成珐琅冰箱贴', exact: true })).toBeVisible();
+  await expect(page.locator('[data-photo-tools]')).not.toHaveAttribute('open');
+  await expect(page.locator('[data-identify]')).toHaveCount(0);
+  await page.locator('[data-photo-tools] summary').click();
+  await page.getByLabel('选择相册照片', { exact: true }).setInputFiles({ name: 'local-photo.png', mimeType: 'image/png', buffer: landscape });
+  await page.getByLabel('照片名称', { exact: true }).fill('旅途回忆');
+  await page.locator('[data-rotate]').click();
+  await page.getByLabel('照片缩放', { exact: true }).fill('2');
+  await page.getByRole('button', { name: '预览裁剪 / 滤镜效果', exact: true }).click();
+  await expect(page.locator('.dj-photo-preview')).toBeVisible(); expect(calls.count).toBe(0);
+  // Returning from the OS picker or another tab must not close the local tool while it is in use.
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(page.locator('[data-photo-tools]')).toHaveAttribute('open');
+  await page.locator('[data-open-magnet]').evaluate(button => { (button as HTMLButtonElement).click(); (button as HTMLButtonElement).click(); });
+  await expect(page.locator('[data-magnet-status]')).toContainText('原照片和名称已带入，尚未发送给 AI');
+  await expect(page.getByLabel('冰箱贴海报标题', { exact: true })).toHaveValue('旅途回忆');
+  await expect(page.getByLabel('冰箱贴主体描述', { exact: true })).toHaveValue('');
+  await expect(page.locator('[data-photo-tools]')).not.toHaveAttribute('open');
+  await expect(page.locator('.dj-magnet-card')).toHaveCount(1); expect(calls.count).toBe(0);
+  const imported = await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const r = indexedDB.open('digital-jiaozi:magnet:personal'); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
+    try {
+      const [w] = await new Promise<any[]>((resolve, reject) => { const r = db.transaction('works').objectStore('works').getAll(); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
+      return { width: w.sourceWidth, height: w.sourceHeight, bytes: Array.from(new Uint8Array(await w.originalPhoto.arrayBuffer())) };
+    } finally { db.close(); }
+  });
+  // Transfer the full original, never the old tool's rotated square preview or filtered pixels.
+  expect(imported.width).toBe(1200); expect(imported.height).toBe(600); expect(Buffer.from(imported.bytes)).toEqual(landscape);
+  await page.getByLabel('冰箱贴主体描述', { exact: true }).fill('测试双色风景，保留配色');
+  await generate(page); expect(calls.count).toBe(1);
+  await page.reload(); await page.locator('.dj-magnet-card').first().click();
+  await expect(page.getByLabel('冰箱贴海报标题', { exact: true })).toHaveValue('旅途回忆');
+  await expect(page.locator('.dj-magnet-original')).toBeVisible(); expect(calls.count).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('带入新照片前旧草稿保存失败时保留两个工具的照片，恢复后可重试且不发AI请求', async ({ page }) => {
+  const calls = await mock(page); await page.goto(photos); await select(page);
+  await page.getByLabel('冰箱贴海报标题', { exact: true }).fill('原有草稿');
+  await page.locator('[data-photo-tools] summary').click();
+  await page.getByLabel('选择相册照片', { exact: true }).setInputFiles({ name: 'another-local-photo.png', mimeType: 'image/png', buffer: panel });
+  await page.getByLabel('照片名称', { exact: true }).fill('新照片');
+  await page.evaluate(() => {
+    const proto = IDBObjectStore.prototype, original = proto.put;
+    (window as any).restoreMagnetStorage = () => { proto.put = original; };
+    proto.put = function(...args) { if (this.transaction.db.name.startsWith('digital-jiaozi:magnet:')) throw new DOMException('full', 'QuotaExceededError'); return original.apply(this, args as [unknown, IDBValidKey?]); };
+  });
+  await page.locator('[data-open-magnet]').click();
+  await expect(page.locator('.dj-editor-status')).toContainText('作品库保存失败');
+  await expect(page.locator('[data-magnet-status]')).toContainText('未切换照片，原作品已保留');
+  await expect(page.locator('[data-photo-tools]')).toHaveAttribute('open');
+  await expect(page.locator('.dj-crop img')).toBeVisible();
+  await expect(page.getByLabel('冰箱贴海报标题', { exact: true })).toHaveValue('原有草稿');
+  await expect(page.locator('.dj-magnet-card')).toHaveCount(1); expect(calls.count).toBe(0);
+  await page.evaluate(() => (window as any).restoreMagnetStorage());
+  await page.locator('[data-open-magnet]').click();
+  await expect(page.locator('[data-magnet-status]')).toContainText('原照片和名称已带入');
+  await expect(page.getByLabel('冰箱贴海报标题', { exact: true })).toHaveValue('新照片');
+  await expect(page.locator('.dj-magnet-card')).toHaveCount(2); expect(calls.count).toBe(0);
+});
+
 test('冰箱贴完整流程：原图字节、独立海报、下半区真实裁切、改字不重发、刷新恢复及积分隔离', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   const calls = await mock(page); await page.goto(photos); await select(page);

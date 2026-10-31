@@ -31,15 +31,22 @@ export class MagnetStudio {
   private selection = 0;
   private journeyId?: string;
   private client: MagnetClient;
+  private ready: Promise<void>;
   constructor(private options: { sample: boolean; assetBase: string; apiBase?: string; journeyId?: string }) {
     this.client = new MagnetClient(options.apiBase); this.journeyId = options.journeyId;
     this.element.className = 'dj-magnet'; this.element.id = 'dj-magnet-studio';
     this.element.addEventListener('click', this.onClick);
     this.element.addEventListener('change', this.onChange);
     this.element.addEventListener('input', this.onInput);
-    this.element.innerHTML = '<div class="dj-panel" role="status">正在打开本机冰箱贴作品库…</div>'; void this.start();
+    this.element.innerHTML = '<div class="dj-panel" role="status">正在打开本机冰箱贴作品库…</div>'; this.ready = this.start();
   }
   setJourney(id?: string) { this.journeyId = id; }
+  async importPhoto(file: File, title: string) {
+    await this.ready;
+    if (this.disposed) throw new Error('冰箱贴工具已关闭，请重新打开照片记忆页。');
+    if (this.composing || this.saving || this.choosing) throw new Error('冰箱贴工具正在处理，请稍后再带入照片。');
+    if (!await this.selectPhoto(file, title)) throw new Error(this.error || '照片未能带入，请保留原照片后重试。');
+  }
   private async start() {
     await Promise.all([
       (async () => { try { this.repository = await MagnetRepository.open(this.options.sample); this.works = await this.repository.list(); } catch (error) { this.error = this.text(error); } })(),
@@ -93,8 +100,8 @@ export class MagnetStudio {
       w.panelCrop = { x, y, width: 1 - x - right, height: 1 - y - bottom };
     }
   }
-  private async selectPhoto(file: File) {
-    if (this.composing || this.saving || this.choosing) return;
+  private async selectPhoto(file: File, title?: string) {
+    if (this.disposed || this.composing || this.saving || this.choosing) return false;
     const token = ++this.selection;
     const savePrevious = this.work && !this.locked();
     this.readFields();
@@ -103,11 +110,19 @@ export class MagnetStudio {
       // Save an existing draft before switching, unless its immutable generation is still running.
       if (savePrevious) await this.persist();
       const photo = await normalizePhoto(file);
-      if (this.disposed || token !== this.selection) return;
+      if (this.disposed || token !== this.selection) return false;
       this.work = newWork(photo, file, this.journeyId); this.showComposer = false; this.posterError = ''; this.error = '';
-      this.message = '照片已读取，方向按 EXIF 校正。请检查裁切并填写主体描述，修改后保存草稿。';
+      if (title !== undefined) this.work.title = title.slice(0, 80);
+      this.message = title !== undefined ? '原照片和名称已带入，尚未发送给 AI。请确认方向、裁切并填写主体描述，再点击“生成珐琅冰箱贴”。' : '照片已读取，方向按 EXIF 校正。请检查裁切并填写主体描述，修改后保存草稿。';
       try { await this.persist(); } catch (error) { this.error = this.text(error); }
-    } catch (error) { if (token === this.selection) this.error = this.text(error); }
+      return true;
+    } catch (error) {
+      if (token === this.selection) {
+        this.error = this.text(error);
+        this.message = this.work ? '未切换照片，原作品已保留。请处理上方错误后重试。' : '照片未能读取，请选择有效照片后重试。';
+      }
+      return false;
+    }
     finally { if (token === this.selection) { this.choosing = false; this.render(); } }
   }
   private async persist() {
@@ -230,8 +245,8 @@ export class MagnetStudio {
     if (this.disposed) return;
     this.urls.forEach(URL.revokeObjectURL); this.urls = [];
     const w = this.work, locked = this.locked(), pending = w && this.inFlight.has(w.id);
-    this.element.innerHTML = `<div class="dj-panel"><p class="dj-eyebrow">个人旅行创作</p><h2>照片生成珐琅冰箱贴</h2>
-      <p>把真实照片变成珐琅质感的数字效果图，再选做纪念海报。</p><p class="dj-hint">不增加或扣除旅游积分，不代表实物已生产或下单。${this.options.sample ? '当前为独立示例作品库。' : ''}</p>
+    this.element.innerHTML = `<div class="dj-panel"><p class="dj-eyebrow">AI 照片创作</p><h2 tabindex="-1">照片生成珐琅冰箱贴</h2>
+      <p>选择照片 → 填写主体描述 → 点击“生成珐琅冰箱贴”。</p><p class="dj-hint">把照片变成珐琅质感的数字效果图，生成后可另做纪念海报。不增加或扣除旅游积分。${this.options.sample ? '当前为独立示例作品库。' : ''}</p>
       <p class="dj-magnet-service">${esc(this.serviceMessage)} <button class="dj-button" data-magnet-action="check-service">检查服务</button></p>
       <div class="dj-magnet-actions"><label class="dj-button dj-primary">选择照片<input type="file" accept="image/jpeg,image/png,image/webp" aria-label="冰箱贴选择照片"></label><label class="dj-button">拍照<input type="file" accept="image/*" capture="environment" aria-label="冰箱贴拍照"></label></div>
       <p class="dj-hint">支持 JPEG / PNG / WebP，最大15 MB、2400万像素。拍照不可用时请选择相册文件。大图副本长边最多2048像素。</p>

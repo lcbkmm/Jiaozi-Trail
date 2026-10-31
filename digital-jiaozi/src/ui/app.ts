@@ -26,6 +26,7 @@ export class JiaoziApp {
   private modal?: Modal;
   private editor?: PhotoEditor;
   private magnet?: MagnetStudio;
+  private photoToolsOpen = false;
   private magnetJourneyId?: string;
   private busy = false;
   private toast = '';
@@ -98,6 +99,7 @@ export class JiaoziApp {
       if (this.disposed || token !== this.sequence) return;
       this.urls.forEach(URL.revokeObjectURL); this.urls = [];
       const tabs: [View, string, string][] = [['home', '我的交子', '▤'], ['collection', '地标收藏', '✦'], ['rewards', '积分兑换', '◇'], ['journey', '旅程纪念', '⌁'], ['photos', '照片记忆', '▣']];
+      this.photoToolsOpen = this.root.querySelector<HTMLDetailsElement>('[data-photo-tools]')?.open ?? this.photoToolsOpen;
       this.root.innerHTML = `<div class="dj-app ${this.options.sample ? 'dj-sample' : ''}"><header class="dj-header"><a href="${this.link('home')}" data-action="nav" data-id="home" class="dj-brand"><span class="dj-brand-mark">交</span><span>数字交子<small>JIAOZI · TRAVEL MEMORIES</small></span></a><span class="dj-local">● 本地档案</span></header>
         ${this.options.sample ? '<div class="dj-sample-banner">示例档案 · 与个人记录完全隔离 <button data-action="personal">返回个人档案</button></div>' : ''}
         <main class="dj-main">${this.navigation.error ? `<div class="dj-notice dj-error" role="alert">${esc(this.navigation.error)}</div>` : ''}
@@ -112,7 +114,14 @@ export class JiaoziApp {
           await this.repository.addPhoto({ ...data, journeyId: this.active.id });
           this.editor?.destroy(); this.editor = undefined;
           this.toast = '照片图案已保存，未增加积分。'; this.navigate('home');
-        }, this.options.adapters || {});
+        }, this.options.adapters || {}, async (file, title) => {
+          if (!this.magnet) throw new Error('请重新打开照片记忆页后重试。');
+          await this.magnet.importPhoto(file, title);
+          this.photoToolsOpen = false;
+          const tools = this.root.querySelector<HTMLDetailsElement>('[data-photo-tools]'); if (tools) tools.open = false;
+          this.magnet.element.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+          this.magnet.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
         this.root.querySelector('[data-photo-mount]')!.append(this.editor.element);
       }
       clearTimeout(this.toastTimer);
@@ -182,7 +191,7 @@ export class JiaoziApp {
       ${this.map(snap.claims, snap.photos, snap.title)}<section class="dj-panel"><h2>那次保存的路线</h2>${snap.route ? `<h3>${esc(snap.route.title)}</h3><span class="dj-badge">${snap.route.source === 'demo' ? '示例路线 · 非 GPS 轨迹' : '宿主路线快照'}</span><ol class="dj-route-list">${snap.route.places.map(p => `<li>${esc(p.name)}</li>`).join('')}</ol>` : '<p class="dj-hint">这段旅程没有接入路线快照。下方只展示实际记录的到访。</p>'}<h3>实际记录的到访顺序</h3>${snap.claims.length ? `<ol class="dj-route-list">${snap.claims.map(c => `<li>${esc(c.place.name)}<small>${esc(date(c.occurredAt))} · ${c.source === 'demo' ? '演示打卡' : '宿主打卡结果'}</small></li>`).join('')}</ol>` : '<p class="dj-hint">保存时没有地标打卡记录。</p>'}<button class="dj-button" data-action="export-saved" data-id="${journey.id}">导出这次旅程纪念图</button></section>`;
   }
   private photos() {
-    return `<section class="dj-intro"><p class="dj-eyebrow">属于你的，独一份的旅行</p><h1>照片记忆</h1><p>用照片创作珐琅冰箱贴，或制作原有的交子照片图案。</p></section><div data-magnet-mount></div><details class="dj-panel" open><summary>原有照片图案 · 彩色 / 印章 / 描边</summary><div data-photo-mount></div></details><section class="dj-panel"><h2>已保存照片 · ${this.state.photos.length}</h2><div class="dj-photo-grid">${this.state.photos.map(p => `<button class="dj-photo-item" data-action="photo-detail" data-id="${p.id}"><img data-media-id="${p.mediaId}" alt="${esc(p.title)}"><span>${esc(p.title)}</span><small>${esc(date(p.createdAt))}</small></button>`).join('')}</div></section>`;
+    return `<section class="dj-intro"><p class="dj-eyebrow">属于你的，独一份的旅行</p><h1>照片记忆</h1><p>在下方 AI 工具中选照片、填写主体，即可生成珐琅冰箱贴。</p></section><div data-magnet-mount></div><details class="dj-panel" data-photo-tools ${this.photoToolsOpen ? 'open' : ''}><summary>本地照片贴片（裁剪 / 滤镜）</summary><div data-photo-mount></div></details><section class="dj-panel"><h2>已保存本地照片贴片 · ${this.state.photos.length}</h2><div class="dj-photo-grid">${this.state.photos.map(p => `<button class="dj-photo-item" data-action="photo-detail" data-id="${p.id}"><img data-media-id="${p.mediaId}" alt="${esc(p.title)}"><span>${esc(p.title)}</span><small>${esc(date(p.createdAt))}</small></button>`).join('')}</div></section>`;
   }
   private modalHtml() {
     if (!this.modal) return '';

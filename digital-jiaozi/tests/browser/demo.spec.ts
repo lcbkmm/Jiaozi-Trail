@@ -110,6 +110,7 @@ test('独立60分兑换NFC后记忆完整，取消退分一次、领取终态', 
 
 test('真实照片上传、旋转、裁剪、三模式、预览Blob相同、关闭后恢复和导出', async ({page,context}) => {
   await page.goto(home); await nav(page,'photos');
+  await page.locator('[data-photo-tools] summary').click();
   await page.getByLabel('选择相册照片',{exact:true}).setInputFiles({name:'asymmetric-fixture.png',mimeType:'image/png',buffer:await testPhoto()});
   await expect(page.locator('.dj-crop img')).toBeVisible();
   await page.locator('[data-rotate]').click();

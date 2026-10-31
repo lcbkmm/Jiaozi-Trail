@@ -8,6 +8,7 @@ import type { HostAdapters } from '../adapters.ts';
 export class PhotoEditor {
   readonly element = document.createElement('section');
   private source?: { blob: Blob; width: number; height: number };
+  private selectedFile?: File;
   private crop?: CropState;
   private pointers = new Map<number, { x: number; y: number }>();
   private preview?: Blob;
@@ -16,20 +17,21 @@ export class PhotoEditor {
   private busy = false;
   private saveRequest = newId();
   private observer?: ResizeObserver;
-  constructor(private save: (data: { title: string; mode: Photo['mode']; blob: Blob; requestId: string }) => Promise<void>, private adapters: HostAdapters) {
+  constructor(private save: (data: { title: string; mode: Photo['mode']; blob: Blob; requestId: string }) => Promise<void>, private adapters: HostAdapters, private openMagnet?: (file: File, title: string) => Promise<void>) {
     this.element.className = 'dj-photo-editor';
-    this.element.innerHTML = `<div class="dj-notice">照片默认只在当前浏览器处理和保存。${adapters.identifyPhoto ? '主动点击 AI 辅助命名会把本次照片发送给宿主接入的服务。' : '当前没有上传服务。'}手动命名即可完成；照片图案不奖励积分。</div>
+    this.element.innerHTML = `<div class="dj-notice">此工具在本机裁剪照片、添加滤镜，彩色模式保留照片原貌。想创作珐琅冰箱贴，请使用上方的 AI 工具。${adapters.identifyPhoto ? '可选的 AI 辅助命名仅填写名称，会把本次照片发送给宿主接入的命名服务。' : ''}本地照片贴片不奖励积分。</div>
       <div class="dj-upload-row"><label class="dj-button dj-primary">选择相册照片<input aria-label="选择相册照片" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><label class="dj-button">拍照<input aria-label="拍照" type="file" accept="image/*" capture="environment" hidden></label></div>
       <div data-editor hidden><div class="dj-crop" role="img" aria-label="照片裁剪区域，可拖动和双指缩放"><img alt="本次选择的照片" draggable="false"><i></i></div>
       <p class="dj-hint">拖动调整位置，双指或滑块缩放。方框内为实际保留内容。</p>
       <label class="dj-field">缩放<input aria-label="照片缩放" type="range" min="1" max="4" step="0.01" value="1"></label>
       <button type="button" data-rotate class="dj-button">顺时针旋转 90°</button>
       <label class="dj-field">照片名称<input aria-label="照片名称" maxlength="40" value="旅途的一瞬"></label>
+      ${openMagnet ? '<button type="button" data-open-magnet class="dj-button dj-primary">用这张照片制作 AI 珐琅冰箱贴</button><p class="dj-hint">带入原照片和名称后，请在 AI 工具中重新确认方向、裁切和主体描述，再点击生成。</p>' : ''}
       <label class="dj-field">图案模式<select aria-label="图案模式"><option value="color">彩色照片贴片</option><option value="tone">单色记忆</option><option value="outline">线条记忆</option></select></label>
       <label class="dj-field" data-threshold>明暗阈值<input aria-label="明暗阈值" type="range" min="25" max="230" value="140"></label>
-      <button type="button" data-identify class="dj-button" ${adapters.identifyPhoto ? '' : 'disabled'}>${adapters.identifyPhoto ? '可选：交给已接入的 AI 辅助命名' : 'AI 未接入 · 请手动命名'}</button>
-      <button type="button" data-preview class="dj-button dj-primary">生成实际预览</button>
-      <div data-result hidden><img class="dj-photo-preview" alt="本次照片生成的图案预览"><button type="button" data-save class="dj-button dj-primary">保存照片图案到地图</button></div></div><p class="dj-editor-status" role="status" aria-live="polite"></p>`;
+      ${adapters.identifyPhoto ? '<button type="button" data-identify class="dj-button">可选：AI 辅助命名（仅填名称）</button>' : ''}
+      <button type="button" data-preview class="dj-button">预览裁剪 / 滤镜效果</button>
+      <div data-result hidden><img class="dj-photo-preview" alt="本地裁剪和滤镜效果预览"><button type="button" data-save class="dj-button dj-primary">保存照片图案到地图</button></div></div><p class="dj-editor-status" role="status" aria-live="polite"></p>`;
     this.element.querySelectorAll<HTMLInputElement>('input[type=file]').forEach(input => input.addEventListener('change', () => { if (input.files?.[0]) void this.work(() => this.choose(input.files![0])); }));
     this.element.querySelector('[data-rotate]')!.addEventListener('click', () => void this.work(async () => {
       if (!this.source) return; this.source = await rotatePhoto(this.source.blob); this.setSource(); this.invalidate();
@@ -44,14 +46,18 @@ export class PhotoEditor {
       this.preview = await renderPhoto(this.source.blob, normalized(this.crop), this.mode(), Number(this.element.querySelector<HTMLInputElement>('[aria-label="明暗阈值"]')!.value));
       if (this.previewUrl) URL.revokeObjectURL(this.previewUrl); this.previewUrl = URL.createObjectURL(this.preview);
       this.element.querySelector<HTMLImageElement>('.dj-photo-preview')!.src = this.previewUrl;
-      this.element.querySelector<HTMLElement>('[data-result]')!.hidden = false; this.message('预览已生成，确认后保存相同图片。');
+      this.element.querySelector<HTMLElement>('[data-result]')!.hidden = false; this.message('本地裁剪 / 滤镜预览已完成，确认后可保存照片贴片。');
     }));
     this.element.querySelector('[data-save]')!.addEventListener('click', () => void this.work(async () => {
       if (!this.preview) throw new Error('请先重新生成预览');
       await this.save({ title: this.element.querySelector<HTMLInputElement>('[aria-label="照片名称"]')!.value, mode: this.mode(), blob: this.preview, requestId: this.saveRequest });
       this.message('照片已保存到本地，可刷新后查看。');
     }));
-    this.element.querySelector('[data-identify]')!.addEventListener('click', () => void this.work(async () => {
+    this.element.querySelector('[data-open-magnet]')?.addEventListener('click', () => void this.work(async () => {
+      if (!this.selectedFile || !this.openMagnet) return;
+      await this.openMagnet(this.selectedFile, this.element.querySelector<HTMLInputElement>('[aria-label="照片名称"]')!.value);
+    }));
+    this.element.querySelector('[data-identify]')?.addEventListener('click', () => void this.work(async () => {
       if (!this.source || !this.adapters.identifyPhoto) return;
       const suggestion = await this.adapters.identifyPhoto(this.source.blob);
       if (suggestion.title) { this.element.querySelector<HTMLInputElement>('[aria-label="照片名称"]')!.value = suggestion.title.slice(0, 40); this.invalidate(); }
@@ -83,9 +89,9 @@ export class PhotoEditor {
   private async work(fn: () => Promise<void>) {
     if (this.busy) return; this.busy = true; this.pointers.clear(); this.element.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>('input,button,select').forEach(e => e.disabled = true);
     try { await fn(); } catch (error) { this.message(error instanceof Error ? error.message : '处理失败，请重试；尚未保存。'); }
-    finally { this.busy = false; this.element.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>('input,button,select').forEach(e => e.disabled = false); if (!this.adapters.identifyPhoto) this.element.querySelector<HTMLButtonElement>('[data-identify]')!.disabled = true; }
+    finally { this.busy = false; this.element.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>('input,button,select').forEach(e => e.disabled = false); }
   }
-  private async choose(file: File) { this.source = await normalizePhoto(file); this.saveRequest = newId(); this.element.querySelector<HTMLElement>('[data-editor]')!.hidden = false; this.setSource(); this.invalidate(); this.message('照片已在本机读取，请裁剪后生成预览。'); }
+  private async choose(file: File) { this.source = await normalizePhoto(file); this.selectedFile = file; this.saveRequest = newId(); this.element.querySelector<HTMLElement>('[data-editor]')!.hidden = false; this.setSource(); this.invalidate(); this.message('照片已在本机读取，可预览裁剪 / 滤镜效果，或带入上方 AI 工具。'); }
   private setSource() {
     if (this.sourceUrl) URL.revokeObjectURL(this.sourceUrl);
     this.sourceUrl = URL.createObjectURL(this.source!.blob); this.element.querySelector<HTMLImageElement>('.dj-crop img')!.src = this.sourceUrl;
