@@ -3,14 +3,13 @@ import copy
 from datetime import datetime, timedelta, timezone
 from pydantic import ValidationError
 from app.errors import AppError
-from app.maps.nearby import distance_m
-from app.planner.search import search_routes
-from app.schemas import Place, Preferences
+from app.goals import covered, sequence_progress
+from app.schemas import Preferences
 
 
 class DynamicPlanning:
     PATCH_KEYS={'max_duration_s','budget_per_person_fen','max_walk_m','max_queue_s','buffer_s',
-                'interests','excluded_interests','must_visit_ids','excluded_place_ids','planning_style'}
+                'interests','required_experiences','required_goals','visit_sequence','visit_mode','category_limits','excluded_interests','must_visit_ids','excluded_place_ids','planning_style'}
 
     def __init__(self,database,repository,tools):
         self.database,self.repository,self.tools=database,repository,tools
@@ -23,15 +22,15 @@ class DynamicPlanning:
             raise AppError('POSITION_CONFIRMATION_REQUIRED','定位误差较大，请重新定位或确认所在位置。',422)
         if position.source in {'manual','demo'} and not position.confirmed:
             raise AppError('POSITION_CONFIRMATION_REQUIRED','手选或演示位置需要明确确认。',422)
-        places=self.database.places()
-        if not places or min(distance_m(position,p) for p in places)>3000:
+        catalog=self.tools.catalog()
+        if not catalog.places or not catalog.nearby_ids(position,3000):
             raise AppError('OUTSIDE_SERVICE_AREA','当前位置超出当前候选商圈，请选择商圈内起点。',422)
         return self.repository.update_position(token,position.model_dump(mode='json'))
 
     def states(self,token):return self.repository.snapshot(token)
 
     def event(self,token,event):
-        if not any(p.place_id==event.place_id for p in self.database.places()):
+        if event.place_id not in self.tools.catalog().places:
             raise AppError('RESOURCE_NOT_FOUND','未知商家点位。',404)
         return self.repository.update_state(token,event)
 
@@ -100,6 +99,7 @@ class DynamicPlanning:
 
     async def replan(self,token,route_id,body):
         route=self.database.route(token,route_id)
+        if route['status'] not in {'planned','active'}:raise AppError('INVALID_ROUTE_STATE','已结束的行程不能重排。',409)
         if route['revision']!=body.base_revision:raise AppError('STALE_REVISION','路线已变化，请重新读取。',409)
         if set(body.preference_patch)-self.PATCH_KEYS:
             raise AppError('INVALID_INPUT','本次修改包含不支持的行程字段。',422)
@@ -116,15 +116,23 @@ class DynamicPlanning:
         if elapsed<0:raise AppError('INVALID_INPUT','重排时间不能早于出发时间。',422)
         spent=progress.get('spent_per_person_fen',0);walked=progress.get('walked_m',0)
         remaining_s=total.max_duration_s-elapsed
-        if remaining_s<900 or spent>total.budget_per_person_fen or walked>total.max_walk_m:
+        if remaining_s<0 or spent>total.budget_per_person_fen or walked>total.max_walk_m:
             raise AppError('NO_FEASIBLE_ROUTE','剩余时间不足或已用预算/步行超过上限，请明确调整约束。',422,
                            {'remaining_s':remaining_s,'spent_per_person_fen':spent,'walked_m':walked})
-        if len(completed)>=5:raise AppError('NO_REMAINING_STOPS','本行程已完成五站，不再自动添加站点。',422)
+        catalog=self.tools.catalog()
+        completed_stops=[catalog.stops[pid] for pid in completed if pid in catalog.stops]
+        fulfilled={tag for stop in completed_stops for tag in stop.interests}
+        progress_index=sequence_progress(total.visit_sequence,completed_stops)
+        if progress_index<0:
+            raise AppError('NO_FEASIBLE_ROUTE','已完成行程与新增顺序要求冲突，请调整顺序。',422)
         remaining=total.model_dump(mode='json')
         remaining.update(departure_at=body.effective_at.isoformat(),max_duration_s=remaining_s,
             budget_per_person_fen=total.budget_per_person_fen-spent,max_walk_m=total.max_walk_m-walked,
             must_visit_ids=[p for p in total.must_visit_ids if p not in completed],
-            excluded_place_ids=list(dict.fromkeys([*total.excluded_place_ids,*completed])),use_current_position=False)
+            required_experiences=[tag for tag in total.required_experiences if tag not in fulfilled],
+            required_goals=[goal.model_dump() for goal in total.required_goals if not covered(goal,completed_stops)],
+            visit_sequence=[goal.model_dump() for goal in total.visit_sequence[progress_index:]],
+            excluded_place_ids=list(total.excluded_place_ids),use_current_position=False)
         if body.origin=='last_completed':
             if not completed:raise AppError('POSITION_REQUIRED','还没有已完成点，请上报当前位置或确认起点。',422)
             remaining['start_place_id']=completed[-1]
@@ -133,13 +141,21 @@ class DynamicPlanning:
             remaining['start_place_id']=total.start_place_id
         else:remaining['use_current_position']=True
         snapshot=self.repository.snapshot(token)
-        plan=await self.tools.plan(Preferences.model_validate(remaining),token=token,include_options=True,
-                                   max_stops=5-len(completed), completed_categories=[s["category"] for s in route["stops"][:len(completed)]])
+        # Remaining time may legitimately be below the public 15-minute minimum.
+        remaining_preferences=Preferences.model_validate({**remaining,'max_duration_s':max(900,remaining_s)})
+        remaining_preferences=remaining_preferences.model_copy(update={'max_duration_s':remaining_s})
+        all_completed=len(completed)==len(route['stops'])
+        has_goals=bool(remaining['required_experiences'] or remaining['must_visit_ids'] or remaining['required_goals'] or remaining['visit_sequence'])
+        capacity=max(0,5-len(completed))
+        if remaining_s<900 or (all_completed and not has_goals): capacity=0
+        plan=await self.tools.plan(remaining_preferences,token=token,include_options=True,
+            max_stops=capacity,allow_empty=True,completed_place_ids=completed,
+            completed_categories=[s["category"] for s in route["stops"][:len(completed)]])
         # Re-read route/state after awaiting network before storing a proposal.
         if self.database.route(token,route_id)['revision']!=body.base_revision:
             raise AppError('STALE_REVISION','计算期间行程变化，请重试。',409)
         latest=self.repository.snapshot(token)
-        if any(latest[k]!=snapshot[k] for k in ('state_version','position_revision')):
+        if self.tools.catalog().version!=catalog.version or any(latest[k]!=snapshot[k] for k in ('state_version','position_revision')):
             raise AppError('STALE_PROPOSAL','计算期间位置或商家状态变化，请重试。',409)
         proposals=[]
         old_remaining=[p for p in [s['place_id'] for s in route['stops']] if p not in completed]
@@ -147,12 +163,15 @@ class DynamicPlanning:
         for option in plan['options']:
             updated=copy.deepcopy(route)
             remaining_totals=option['totals']
-            updated.update(stops=prefix+option['stops'],stop_ids=[s['stop_id'] for s in prefix+option['stops']],
+            updated.update(catalog_version=catalog.version,stops=prefix+option['stops'],stop_ids=[s['stop_id'] for s in prefix+option['stops']],
                 legs=option['legs'],history_legs=copy.deepcopy(route.get('history_legs',route['legs'])[:len(completed)])+option['legs'],
                 remaining_totals=remaining_totals,remaining_departure_at=body.effective_at.isoformat(),
-                planned_end_at=option['planned_end_at'],preferences=total.model_dump(mode='json'),
+                planned_end_at=option['planned_end_at'],preferences={**total.model_dump(mode='json'),
+                    'planning_style':option['preferences']['planning_style']},
                 state_version=snapshot['state_version'],position_revision=snapshot['position_revision'],
-                warnings=option['warnings'],sources=option['sources'],planner=option['planner'])
+                warnings=option['warnings'],sources=option['sources'],planner=option['planner'],
+                planning_outcome=option.get('planning_outcome','visits'),
+                status='completed' if option.get('planning_outcome')=='completed' else route['status'])
             completed_components={key:sum(stop[key] for stop in prefix) for key in ('walk_duration_s','wait_duration_s','queue_duration_s','dwell_duration_s')}
             adjustment=elapsed-sum(completed_components.values())
             updated['totals']={**remaining_totals,
@@ -171,6 +190,7 @@ class DynamicPlanning:
                   'benefit_warnings':['小样/优惠售罄的点位仍可能适合逛吃，但不可承诺领取。'] if any(
                        x.get('inventory_status')=='sold_out' for x in snapshot['states'].values()) else []}
             payload={'route':updated,'option_id':option['option_id'],'title':option['title'],
+                'catalog_version':catalog.version,
                 'reason':body.reason,'triggers':self.assess(token,route_id)['reasons'],'diff':diff,'requires_confirmation':True,
                 'render':{'coord_system':'gcj02','origin':plan.get('origin') or {
                               'place_id':remaining['start_place_id'], 'source':'confirmed_last_completed' if body.origin=='last_completed' else 'planned_start'},

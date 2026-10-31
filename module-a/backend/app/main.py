@@ -36,19 +36,21 @@ def create_app(settings: Settings | None = None):
     async def lifespan(app):
         database = Database(settings.database_path)
         if settings.places_path.exists():
-            database.seed_places([Place.model_validate(p) for p in json.loads(settings.places_path.read_text(encoding="utf-8"))])
+            database.seed_places([Place.model_validate(p) for p in json.loads(settings.places_path.read_text(encoding="utf-8"))],replace_all=True)
         campaign = json.loads(settings.campaign_path.read_text(encoding="utf-8"))
         app.state.stops = [CampaignStop.model_validate(s) for s in campaign["stops"]]
         app.state.database = database
         app.state.nearby = NearbyPlaceRepository(database, settings.nearby_provider)
         async with httpx.AsyncClient(base_url=settings.maps_base_url, follow_redirects=False,
                 timeout=httpx.Timeout(15, connect=5, pool=20),
-                limits=httpx.Limits(max_connections=4, max_keepalive_connections=2, keepalive_expiry=30)) as client:
+                limits=httpx.Limits(max_connections=4, max_keepalive_connections=2, keepalive_expiry=120)) as client:
             maps = BaiduMaps(client, settings.baidu_ak)
             app.state.maps = maps
             app.state.segments = SegmentRepository(database, maps, settings.maps_mode)
             app.state.tools = BusinessTools(database, app.state.stops, app.state.segments, app.state.nearby, settings.campaign_path)
+            app.state.tools.catalog()  # Build and validate the immutable catalog during startup.
             app.state.dynamic_repository = DynamicRepository(database)
+            app.state.dynamic_repository.catalog_version = lambda: app.state.tools.catalog().version
             app.state.tools.dynamic = app.state.dynamic_repository
             app.state.dynamic_planning = DynamicPlanning(database,app.state.dynamic_repository,app.state.tools)
             app.state.tools.dynamic_planning = app.state.dynamic_planning
@@ -100,7 +102,7 @@ def create_app(settings: Settings | None = None):
 
     @app.get("/health")
     def health(request: Request):
-        return {"status": "ok", "stage": "phase2b", "places_count": len(request.app.state.database.places()),
+        return {"status": "ok", "stage": "phase2b", "places_count": len(request.app.state.tools.catalog().places),
                 "walking_segments_cached": request.app.state.database.segment_count(),
                 "maps_mode": settings.maps_mode, "nearby_provider": "sqlite", "llm_connected": request.app.state.gateway.extraction_verified}
 
@@ -113,11 +115,13 @@ def create_app(settings: Settings | None = None):
     @app.get("/api/v1/places")
     def places(request: Request, current=Depends(session), longitude: float | None = Query(default=None, ge=-180, le=180),
                latitude: float | None = Query(default=None, ge=-85, le=85), radius_m: int = Query(default=2000, ge=1, le=10000),
-               category: str | None = Query(default=None, max_length=32)):
+               category: str | None = Query(default=None, max_length=32),
+               interest: str | None = Query(default=None, max_length=48), limit: int = Query(default=20,ge=1,le=100)):
         if (longitude is None) != (latitude is None):
             raise AppError("INVALID_INPUT", "经度和纬度必须同时提供。")
         if longitude is not None:
-            data = request.app.state.nearby.find(Point(longitude=longitude, latitude=latitude), radius_m, category)
+            data = request.app.state.nearby.find(Point(longitude=longitude, latitude=latitude), radius_m, category,
+                                                  interest=interest,limit=limit,catalog=request.app.state.tools.catalog())
         else:
             data = [p.model_dump(mode="json") for p in request.app.state.database.places() if not category or p.category == category]
         return envelope(request, data)

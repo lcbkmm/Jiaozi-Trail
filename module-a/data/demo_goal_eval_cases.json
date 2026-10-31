@@ -1,0 +1,135 @@
+[
+  {
+    "id": "goal_colloquial",
+    "text": "走得有点累了，今天就吃顿火锅，别加逛街了。",
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "required_experiences": [
+        "hotpot"
+      ],
+      "visit_mode": "focused"
+    },
+    "expect_clarification": false,
+    "selected_place_id": null
+  },
+  {
+    "id": "goal_no_brand",
+    "text": "我先不选店名，给我挑家火锅店，最多排一刻钟。",
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "required_experiences": [
+        "hotpot"
+      ],
+      "max_queue_s": 900
+    },
+    "expect_clarification": false,
+    "selected_place_id": null
+  },
+  {
+    "id": "goal_optional_coffee",
+    "text": "火锅必须安排，咖啡有空再喝。",
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "required_experiences": [
+        "hotpot"
+      ],
+      "interests": [
+        "coffee"
+      ]
+    },
+    "forbidden_required_experiences": [
+      "coffee"
+    ],
+    "expect_clarification": false,
+    "selected_place_id": null
+  },
+  {
+    "id": "goal_change_mind",
+    "text": "不吃火锅了，换喝茶。",
+    "preferences_patch": {
+      "required_experiences": [
+        "hotpot"
+      ]
+    },
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "required_experiences": [
+        "tea"
+      ],
+      "excluded_interests": [
+        "hotpot"
+      ]
+    },
+    "forbidden_required_experiences": [
+      "hotpot"
+    ],
+    "expect_clarification": false,
+    "selected_place_id": null
+  },
+  {
+    "id": "goal_browse_only",
+    "text": "附近有火锅店吗？我先看看。",
+    "expected_operations": [
+      "search_nearby_places"
+    ],
+    "expected_patch": {},
+    "expect_clarification": false,
+    "selected_place_id": null
+  },
+  {
+    "id": "goal_with_landmark",
+    "text": "一定去IFS，还想吃火锅，其他随意。",
+    "expected_operations": [
+      "require_place",
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "required_experiences": [
+        "hotpot"
+      ]
+    },
+    "expect_clarification": false,
+    "selected_place_id": null
+  },
+  {
+    "id": "goal_remaining_time",
+    "text": "现在还剩一个半小时，继续按刚才的火锅计划走。",
+    "preferences_patch": {
+      "required_experiences": [
+        "hotpot"
+      ]
+    },
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "max_duration_s": 5400
+    },
+    "expect_clarification": false,
+    "selected_place_id": null
+  },
+  {
+    "id": "goal_replace_meal",
+    "text": "这家排太久了，换个吃火锅的地方，不加其他站。",
+    "preferences_patch": {
+      "required_experiences": [
+        "hotpot"
+      ],
+      "visit_mode": "focused"
+    },
+    "expected_operations": [
+      "replace_place"
+    ],
+    "expected_patch": {},
+    "expect_clarification": false,
+    "selected_place_id": "hotpot_alt"
+  }
+]

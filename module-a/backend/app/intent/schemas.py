@@ -2,9 +2,7 @@ from __future__ import annotations
 from typing import Literal
 from datetime import datetime
 from pydantic import Field, model_validator
-from app.schemas import Schema, Preferences
-
-INTERESTS = {"coffee", "tea", "food", "hotpot", "landmark", "launch", "culture", "lifestyle", "photo", "local"}
+from app.schemas import Schema, Preferences, Tag, VisitGoal
 OperationName = Literal["update_preferences", "require_place", "exclude_place", "replace_place", "insert_place", "get_place_details", "search_nearby_places", "plan_routes", "add_memory"]
 
 
@@ -13,16 +11,14 @@ class PreferencePatch(Schema):
     max_duration_s: int | None = Field(default=None, strict=True, ge=900, le=43200)
     max_walk_m: int | None = Field(default=None, strict=True, ge=0, le=15000)
     max_queue_s: int | None = Field(default=None, strict=True, ge=0, le=10800)
-    interests: list[str] | None = Field(default=None, max_length=10)
-    excluded_interests: list[str] | None = Field(default=None, max_length=10)
+    interests: list[Tag] | None = Field(default=None, max_length=10)
+    required_experiences: list[Tag] | None = Field(default=None, max_length=10)
+    required_goals: list[VisitGoal] | None = Field(default=None, max_length=8)
+    visit_sequence: list[VisitGoal] | None = Field(default=None, max_length=5)
+    visit_mode: Literal["flexible", "focused"] | None = None
+    category_limits: dict[Tag, int] | None = None
+    excluded_interests: list[Tag] | None = Field(default=None, max_length=10)
     planning_style: Literal["balanced", "less_walking", "more_experiences"] | None = None
-
-    @model_validator(mode="after")
-    def known_tags(self):
-        for values in (self.interests, self.excluded_interests):
-            if values is not None and (set(values)-INTERESTS):
-                raise ValueError("Unknown interest tags")
-        return self
 
 
 class Operation(Schema):
@@ -32,7 +28,7 @@ class Operation(Schema):
     patch: PreferencePatch | None = None
     place_query: str | None = Field(default=None, max_length=100)
     replacement_query: str | None = Field(default=None, max_length=100)
-    target_interest: str | None = None
+    target_interest: Tag | None = None
     radius_m: int | None = Field(default=None, strict=True, ge=1, le=5000)
     category: Literal["coffee", "tea", "meal", "landmark", "culture", "lifestyle"] | None = None
 
@@ -43,8 +39,6 @@ class Operation(Schema):
                 raise ValueError("An update requires a nonempty patch")
         elif self.patch is not None:
             raise ValueError("Only update_preferences accepts patch")
-        if self.target_interest is not None and self.target_interest not in INTERESTS:
-            raise ValueError("Unknown target interest")
         return self
 
 

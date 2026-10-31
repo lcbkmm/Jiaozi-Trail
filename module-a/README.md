@@ -4,6 +4,10 @@
 
 当前预览 http://127.0.0.1:8004。完整验证记录见 docs/PHASE2A_MODEL_STATUS.md。2B 已实现，见 docs/PHASE2B_DYNAMIC_STATUS.md。我们只负责动态规划服务；地点目录和卡通地图由队友提供，交子与 DIY 归其负责模块。
 
+**11 月 1 日演示改进**
+
+已实现数据驱动的体验词表、任选与顺序目标、单站路线、临时小程序动态确认流程、真实火锅替代候选、索引召回及行程完成/仅返程结果。本机合成10000商家热规划P95约68ms，仅计本地处理；真实模型调用当前超时，不能将该数值当端到端延迟。演示步骤、测试证据和剩余联调项见 [演示操作与验证](docs/DEMO_READINESS_20261101.md)。
+
 **启动后端**
 
 在仓库根目录执行 PowerShell：
@@ -27,7 +31,7 @@ python -m venv module-a/backend/.venv
 
 **已实现的数据与功能**
 
-- 地铁起点 + 8 个真实候选点；72 条有向百度步行路段与入口版本缓存。
+- 地铁起点 + 9 个真实候选点（含两家火锅店）；90 条有向百度步行路段与入口版本缓存。
 - SQLite 附近初筛、独立演示会话、路线保存/列表/读取、收藏、开始与版本检查。
 - 时间、预算、营业/活动窗口、排队上限、总步行、必去、排除偏好、返程与缓冲的硬约束；最多 5 站，1 个正餐与 1 个饮品站。
 - 综合、少步行、多体验策略，共用路段和搜索结果，按点位组合去重；不足三条时不重复凑数。
@@ -55,12 +59,12 @@ python -m venv module-a/backend/.venv
 ./module-a/backend/.venv/Scripts/python.exe -X utf8 module-a/scripts/probe_model.py
 ./module-a/backend/.venv/Scripts/python.exe -X utf8 module-a/scripts/evaluate_intents.py --limit 3
 # 单元与集成测试不调用外部模型或地图
-./module-a/backend/.venv/Scripts/python.exe -m pytest module-a/backend/tests -q
+./module-a/backend/.venv/Scripts/python.exe -m pytest -c module-a/backend/pytest.ini module-a/backend/tests -q
 # 后端启动后验证小程序页面逻辑与真实 API；聊天确认使用明确测试适配器
 node module-a/scripts/verify_miniprogram.cjs --live
 ~~~
 
-59 项自动测试通过，pip check 无冲突。真实语言首轮 32/36，提示修正后同一回归集 36/36；样例参与过调试，不能理解为未知输入也有 100% 准确率。真实复合需求已驱动规划和查询工具，浏览器确认保存已通过；当前没有独立留出集、Jev 收益对照或微信真机验收。
+91 项自动测试通过，pip check 无冲突。此前版本新增 8 条核心体验抽查通过；本轮新增的10条泛化语言抽查被网关生成超时阻断，尚未完成真实模型验收。详见 docs/GENERALIZATION_AND_LATENCY_20261031.md。真实语言首轮 32/36，提示修正后同一回归集 36/36；样例参与过调试，不能理解为未知输入也有 100% 准确率。真实复合需求已驱动规划和查询工具，浏览器确认保存已通过；当前没有独立留出集、Jev 收益对照或微信真机验收。
 
 **接口入口**
 
@@ -68,6 +72,6 @@ node module-a/scripts/verify_miniprogram.cjs --live
 
 已开始行程可以带 route_id、base_revision、effective_at 请求剩余重排，上传当前定位或明确确认最后完成点；仅接受 proposal_id 才修改路线。进度上报不是活动核销，不发奖励。个人记忆可识别，实际保存与奖励由队友负责模块实现。
 
-下一步：对接队友交付的真实商家目录（保留其 ID 与真实坐标），按 docs/ROUTE_PLANNING_FRONTEND_API.md 联调设备位置、路线返回和动态确认；提高路网查询与推荐效率，验证更大目录和未见过的表达。卡通地图和交子绘制不是本模块任务。设计稿不阻塞规划开发。
+下一步：在原生小程序及演示网络彩排，按 docs/接口文档.md 对接队友交付的真实商家目录与卡通地图（保留其 ID 与真实坐标），验证更大目录和未见过的表达。卡通地图和交子绘制不是本模块任务。设计稿不阻塞规划开发。
 
-给地图同学的最小对接资料：docs/ROUTE_PLANNING_FRONTEND_API.md 与 docs/ROUTE_PLANNING_OPENAPI.json。PLACES_PATH/CAMPAIGN_PATH 可配置适配后的目录路径，原始数据字段映射仍需收到实际样本后确认，不自行重新编号。
+给地图同学的最小对接资料：docs/接口文档.md 与 docs/ROUTE_PLANNING_OPENAPI.json。PLACES_PATH/CAMPAIGN_PATH 可配置适配后的目录路径，原始数据字段映射仍需收到实际样本后确认，不自行重新编号。

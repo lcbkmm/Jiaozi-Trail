@@ -13,13 +13,22 @@ class NearbyPlaceRepository:
     def __init__(self, database, provider="sqlite"):
         self.database, self.provider = database, provider
 
-    def find(self, point, radius_m, category=None):
-        # Redis can implement this interface later. Record the actual source on fallback.
-        source = "sqlite" if self.provider == "sqlite" else "sqlite_fallback"
-        rows = []
-        for place in self.database.places():
-            d = distance_m(point, place)
-            if d <= radius_m and (category is None or place.category == category):
-                rows.append({**place.model_dump(mode="json"), "approx_distance_m": round(d),
-                             "nearby_source": source})
-        return sorted(rows, key=lambda row: row["approx_distance_m"])
+    def find(self, point, radius_m, category=None, *, interest=None, limit=20, catalog=None):
+        from app.catalog import CatalogIndex
+        import heapq
+        from app.errors import AppError
+        if catalog is None:
+            key=self.database.catalog_revision
+            if getattr(self,'_revision',None)!=key:
+                self._index=CatalogIndex(self.database.places(),[])
+                self._revision=key
+            catalog=self._index
+        if interest is not None and interest not in catalog.vocabulary:
+            raise AppError('UNSUPPORTED_EXPERIENCE','目录尚无此体验标签。',422)
+        source='sqlite' if self.provider=='sqlite' else 'sqlite_fallback'
+        ids=catalog.nearby_ids(point,radius_m)
+        if interest:ids &= catalog.by_tag.get(interest,set())
+        candidates=(catalog.places[pid] for pid in ids if category is None or catalog.places[pid].category==category)
+        places=heapq.nsmallest(min(limit,100),candidates,key=lambda p:(distance_m(point,p),p.place_id))
+        return [{**place.model_dump(mode='json'),'approx_distance_m':round(distance_m(point,place)),
+                 'nearby_source':source} for place in places]

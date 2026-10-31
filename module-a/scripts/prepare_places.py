@@ -43,7 +43,7 @@ async def main():
             candidates = []
             for row in raw:
                 try:
-                    place = Place(place_id=entry["id"], name=row["name"], address=row.get("address", ""),
+                    place = Place(place_id=entry["id"], name=row["name"], aliases=entry.get("aliases",[]), address=row.get("address", ""),
                         uid=row["uid"], longitude=row["location"]["lng"], latitude=row["location"]["lat"],
                         category=entry["category"], retrieved_at=datetime.now(timezone.utc))
                 except (ValueError, KeyError, TypeError):

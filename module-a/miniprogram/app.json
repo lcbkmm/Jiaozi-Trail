@@ -9,5 +9,13 @@
     "backgroundColor": "#f5f3ee"
   },
   "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于从当前位置规划商圈步行路线"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ]
 }

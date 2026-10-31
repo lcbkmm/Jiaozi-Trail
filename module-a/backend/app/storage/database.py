@@ -13,6 +13,8 @@ from app.schemas import Place
 class Database:
     def __init__(self, path: Path):
         self.path = path
+        self.catalog_revision = 0
+        self._places_cache = None
         path.parent.mkdir(parents=True, exist_ok=True)
         with self.connection() as db:
             db.execute("PRAGMA journal_mode=WAL")
@@ -61,16 +63,32 @@ class Database:
             raise AppError("SESSION_REQUIRED", "请先创建演示会话。", 401)
         return dict(row)
 
-    def seed_places(self, places):
+    def seed_places(self, places, *, replace_all=False):
+        places=list(places)
         with self.connection() as db:
+            if replace_all:db.execute("DELETE FROM places")
             for place in places:
                 db.execute("INSERT INTO places VALUES (?, ?) ON CONFLICT(place_id) DO UPDATE SET payload=excluded.payload",
                            (place.place_id, place.model_dump_json()))
+        self.catalog_revision += 1
+        self._places_cache = None
 
     def places(self):
+        if self._places_cache is None:
+            with self.connection() as db:
+                rows = db.execute("SELECT payload FROM places ORDER BY place_id").fetchall()
+            self._places_cache = tuple(Place.model_validate_json(row[0]) for row in rows)
+        return list(self._places_cache)
+
+    def segments(self, keys):
+        result={}
         with self.connection() as db:
-            rows = db.execute("SELECT payload FROM places ORDER BY place_id").fetchall()
-        return [Place.model_validate_json(row[0]) for row in rows]
+            keys=list(keys)
+            for offset in range(0,len(keys),400):
+                chunk=keys[offset:offset+400]
+                rows=db.execute("SELECT cache_key,payload FROM segments WHERE cache_key IN ("+','.join('?' for _ in chunk)+")",chunk).fetchall()
+                result.update({row['cache_key']:json.loads(row['payload']) for row in rows})
+        return result
 
     def segment(self, key):
         with self.connection() as db:
@@ -123,6 +141,8 @@ class Database:
         route = self.route(token, route_id)
         if route["status"] == "active":
             return route
+        if route["status"] != "planned":
+            raise AppError("INVALID_ROUTE_STATE", "已结束的行程不能重新开始，请创建新行程。",409)
         if route["revision"] != base_revision:
             raise AppError("STALE_REVISION", "路线版本已变化，请重新读取。", 409)
         route.update(status="active", revision=base_revision + 1)

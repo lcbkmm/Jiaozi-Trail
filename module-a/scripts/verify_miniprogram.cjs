@@ -65,7 +65,8 @@ page.setData = patch => Object.assign(page.data, patch);
     assert.equal(page.savedRoute.preferences.planning_style, chosen);
     assert.ok(storage.has('jiaozi-mini-last-route'));
   }
-  const initialRevision = page.data.routeStatus;
+  // The adapter below tests initial-plan confirmation only; dynamic flow has its own live script.
+  page.savedRoute = null; page.data.routeStatus = 'planned';
   page.data.online = true;
   page.data.chatText = '预算改成90元';
   const routeBefore = page.data.route;
@@ -80,7 +81,7 @@ page.setData = patch => Object.assign(page.data, patch);
   await page.sendChat();
   assert.equal(page.data.route, routeBefore);
   assert.ok(page.data.chatPending);
-  page.applyChatProposal();
+  await page.applyChatProposal();
   assert.equal(page.data.budget,'90');
   assert.equal(page.data.route.preferences.budget_per_person_fen,9000);
   assert.equal(page.data.chatPending,null);
