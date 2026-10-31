@@ -2,6 +2,8 @@
 
 本模块已从微信小程序改为独立 Vite + TypeScript 手机网页。个人旅程、积分、收藏、兑换和照片 Blob 保存在当前浏览器的 IndexedDB；核心功能无需后端、微信登录或 API 密钥。旧小程序/SQLite 后端与旧积分仅归档在 `legacy/`，不参与当前构建。
 
+新增可选的“照片生成珐琅冰箱贴”：使用模块专属 Node 中转真实上传照片至指定供应商，生成原始 PNG 完整保存在本机作品库，可直接下载；上下拼接纪念海报另存。只有用户点生成才上传，不改变旅游积分和地标规则。本地保存不代表照片从不离开设备。
+
 2026-10-31 最新补充：用户提供的六张正式地标票图已接入，编号依票面 CX1001–CX1006 对应 IFS、太古里、九眼桥、大慈寺、水井坊、三圣乡。图片交付后的事实覆盖原改造提示词中“图片未完成、地名未确定”的状态；积分规则仍沿用该提示词。
 
 ## 在哪里运行
@@ -25,6 +27,7 @@ npm run dev
 - Demo 礼品 20/30/40/50/60 分。60 分是固定款 NFC 实体纪念交子冰箱贴，不是升级形态；没有真实库存或发货承诺。
 - 待领取兑换可取消退回一次，累计获得不增加；演示确认领取后不能取消。
 - 照片上传、裁剪、旋转、彩色/单色/线条处理在本地完成，成品以 PNG Blob 保存，不奖励积分。无 AI 配置时手动命名可完整使用。
+- 个人珐琅作品独立于六款地标和固定款 NFC 纪念交子；可保存草稿、生成原图、另做3:4海报、刷新恢复和下载。AI费用由供应商产生，与旅游积分无关。
 - 地标演示打卡和正式宿主打卡明确区分。没有实现真实 GPS 认证、可信积分、工作人员核销或跨设备恢复。
 
 ## 生产构建与静态部署
@@ -32,6 +35,7 @@ npm run dev
 ```powershell
 npm run check
 npm test
+npm run test:magnet-server
 npm run build
 npm run build:module
 npm run test:browser
@@ -49,6 +53,30 @@ Remove-Item Env:DJ_BASE
 ```
 
 路由位于 hash 内，静态服务器只需正常返回该部署目录的 `index.html`，无需为 hash 路由设置服务器 rewrite。不支持直接双击本地 HTML 的 file 协议。
+
+## 珐琅冰箱贴运行与三步演示
+
+当前实现工程已从用户指定文件安全复制配置到 `D:\Codex\Jiaozi-Trail-impl\digital-jiaozi\.env.magnet.local`。服务端按源码相对路径**显式加载**它，已有环境变量优先；不需要重新填写或覆盖现有文件。全新部署时参照 `.env.example`，仅在服务端设置 `DJ_MAGNET_API_KEY`；不要使用 `VITE_` 前缀。指定其他配置文件用服务端 `DJ_MAGNET_ENV_FILE`，不把密钥写入启动命令。
+
+在模块目录的两个终端分别运行：
+
+```powershell
+npm run magnet:server
+```
+
+```powershell
+npm run dev
+```
+
+前端 `http://localhost:5188/#/digital-jiaozi/photos`，中转 `http://127.0.0.1:5191`。Vite将专属 `/api/digital-jiaozi/magnets/` 代理到中转。首次看到“服务已连接”后：
+
+1. 选相册或拍照文件，检查方向和下半区真实裁切，手动选类别、填写主体；标题、地点和年份可空，不自动猜测。
+2. 点“生成珐琅冰箱贴”，等待数十秒；完整原图成功后先下载。刷新不会重新发单，未知任务可点“查询本次临时结果”读取中转15分钟缓存。
+3. 可选“制作纪念海报”，人工调整生成图四边范围并确认主体完整，再合成、下载。改标题或照片焦点只需本地重新合成，不必再次生图。重新打开作品库可恢复原图和海报。
+
+本轮已用一张程序绘制场景完成一次真实网页调用，返回1536×2048 PNG，原图下载及刷新恢复均逐字节一致；流程耗时约32.7秒。测试脚本 `scripts/verify-magnet-real.mjs` 不属于普通回归，已有调用记录会拒绝重跑，避免重复付费。
+
+线上部署需同时提供静态前端与 Node 中转。将上述API前缀同源反代到5191，允许至少16 MiB请求体，代理超时330秒并禁用POST自动重试；Node默认请求超时210秒。单独上传 `dist/` 或运行静态 `preview` 不能提供在线AI生成。Serverless须满足原始multipart、sharp依赖、长超时和足够大的响应限制。当前为单进程受控演示，未部署公网；挂载代码、跨域和多实例限制见 `docs/fridge-magnet-integration.md`。
 
 ## NFC 最终网址与保存
 
@@ -80,6 +108,8 @@ Remove-Item Env:DJ_BASE
 - `docs/integration.md`：宿主挂载、打卡、路线适配、事件与合并步骤。
 - `docs/assets-handoff.md` / `docs/给图片制作AI的交接.md`：六张已交付图片的文件位置、编号和后续替换方法，无美学要求。
 - `docs/development-status.md`：实测范围和仍未接入项。
+- `docs/fridge-magnet-integration.md`：个人作品库、宿主入口、可选journeyId、中转挂载及部署。
+- `docs/fridge-magnet-api.md`：供应商固定协议、服务端配置、临时结果查询与真实验证边界。
 - `docs/网页版Demo改造提示词.md`：完整改造需求原文；其图片状态见本 README 的最新补充。
 
 测试截图与合成测试图片在忽略的 `var/qa/`。不提交私照、浏览器档案、node_modules、构建缓存或密钥。

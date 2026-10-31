@@ -11,6 +11,8 @@ import { CARD_LAYOUT, geometry, imagePosition } from '../media/layout.ts';
 import { fallbackImage, landmarkSource } from '../media/assets.ts';
 import { downloadBlob, exportMemory } from '../media/export.ts';
 import { PhotoEditor } from './photo-editor.ts';
+import { MagnetStudio } from '../features/fridge-magnet/studio.ts';
+import { resetMagnetSample } from '../features/fridge-magnet/repository.ts';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const date = (s: string) => new Date(s).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -23,6 +25,8 @@ export class JiaoziApp {
   private navigation: Navigation;
   private modal?: Modal;
   private editor?: PhotoEditor;
+  private magnet?: MagnetStudio;
+  private magnetJourneyId?: string;
   private busy = false;
   private toast = '';
   private page = 0;
@@ -62,7 +66,7 @@ export class JiaoziApp {
   }
   destroy() {
     clearTimeout(this.toastTimer);
-    this.disposed = true; this.sequence++; this.unsubscribe?.(); this.editor?.destroy(); this.urls.forEach(URL.revokeObjectURL);
+    this.disposed = true; this.sequence++; this.unsubscribe?.(); this.editor?.destroy(); this.magnet?.destroy(); this.urls.forEach(URL.revokeObjectURL);
     this.root.removeEventListener('click', this.onClick); this.root.removeEventListener('error', this.onImageError, true);
     window.removeEventListener('hashchange', this.onHash); document.removeEventListener('visibilitychange', this.onFocus); this.root.replaceChildren();
   }
@@ -75,6 +79,10 @@ export class JiaoziApp {
     this.modal = undefined; this.page = 0;
     if (this.options.routing === 'memory') { this.navigation = { view: 'journey', sample: this.options.sample, ...selector }; void this.render(); }
     else location.hash = new URL(this.getJourneyUrl(selector)).hash;
+  }
+  openMagnet(selector: { journeyId?: string } = {}) {
+    this.magnetJourneyId = selector.journeyId; this.magnet?.setJourney(selector.journeyId);
+    this.navigate('photos');
   }
   getJourneyUrl(selector: { journeyId?: string; tagId?: string } = {}) {
     return journeyUrl(this.options.publicBaseUrl || location.href, { ...selector, sample: this.options.sample }, this.options.routePrefix);
@@ -98,6 +106,8 @@ export class JiaoziApp {
         <nav class="dj-nav" aria-label="数字交子导航">${tabs.map(([view, label, icon]) => `<a href="${this.link(view)}" data-action="nav" data-id="${view}" ${this.navigation.view === view ? 'aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${label}</a>`).join('')}</nav>
         <div class="dj-toast" role="status" aria-live="polite">${esc(this.toast)}</div>${this.modalHtml()}</div>`;
       if (this.navigation.view === 'photos') {
+        if (!this.magnet) this.magnet = new MagnetStudio({ sample: this.options.sample, assetBase: this.assetBase, apiBase: this.options.magnetApiBase, journeyId: this.magnetJourneyId || this.active.id });
+        this.root.querySelector('[data-magnet-mount]')!.append(this.magnet.element);
         if (!this.editor) this.editor = new PhotoEditor(async data => {
           await this.repository.addPhoto({ ...data, journeyId: this.active.id });
           this.editor?.destroy(); this.editor = undefined;
@@ -172,7 +182,7 @@ export class JiaoziApp {
       ${this.map(snap.claims, snap.photos, snap.title)}<section class="dj-panel"><h2>那次保存的路线</h2>${snap.route ? `<h3>${esc(snap.route.title)}</h3><span class="dj-badge">${snap.route.source === 'demo' ? '示例路线 · 非 GPS 轨迹' : '宿主路线快照'}</span><ol class="dj-route-list">${snap.route.places.map(p => `<li>${esc(p.name)}</li>`).join('')}</ol>` : '<p class="dj-hint">这段旅程没有接入路线快照。下方只展示实际记录的到访。</p>'}<h3>实际记录的到访顺序</h3>${snap.claims.length ? `<ol class="dj-route-list">${snap.claims.map(c => `<li>${esc(c.place.name)}<small>${esc(date(c.occurredAt))} · ${c.source === 'demo' ? '演示打卡' : '宿主打卡结果'}</small></li>`).join('')}</ol>` : '<p class="dj-hint">保存时没有地标打卡记录。</p>'}<button class="dj-button" data-action="export-saved" data-id="${journey.id}">导出这次旅程纪念图</button></section>`;
   }
   private photos() {
-    return `<section class="dj-intro"><p class="dj-eyebrow">属于你的，独一份的旅行</p><h1>照片记忆</h1><p>从自己的照片生成图案，和地标一起留在交子里。</p></section><div data-photo-mount></div><section class="dj-panel"><h2>已保存照片 · ${this.state.photos.length}</h2><div class="dj-photo-grid">${this.state.photos.map(p => `<button class="dj-photo-item" data-action="photo-detail" data-id="${p.id}"><img data-media-id="${p.mediaId}" alt="${esc(p.title)}"><span>${esc(p.title)}</span><small>${esc(date(p.createdAt))}</small></button>`).join('')}</div></section>`;
+    return `<section class="dj-intro"><p class="dj-eyebrow">属于你的，独一份的旅行</p><h1>照片记忆</h1><p>用照片创作珐琅冰箱贴，或制作原有的交子照片图案。</p></section><div data-magnet-mount></div><details class="dj-panel" open><summary>原有照片图案 · 彩色 / 印章 / 描边</summary><div data-photo-mount></div></details><section class="dj-panel"><h2>已保存照片 · ${this.state.photos.length}</h2><div class="dj-photo-grid">${this.state.photos.map(p => `<button class="dj-photo-item" data-action="photo-detail" data-id="${p.id}"><img data-media-id="${p.mediaId}" alt="${esc(p.title)}"><span>${esc(p.title)}</span><small>${esc(date(p.createdAt))}</small></button>`).join('')}</div></section>`;
   }
   private modalHtml() {
     if (!this.modal) return '';
@@ -245,6 +255,8 @@ export class JiaoziApp {
         if (this.options.routing === 'memory') throw new Error('宿主嵌入时请由集成方创建独立的示例挂载。');
         location.hash = this.options.routePrefix + (action === 'sample' ? '?sample=1' : '');
       } else if (action === 'reset-sample' && this.options.sample) {
+        this.magnet?.destroy(); this.magnet = undefined;
+        await resetMagnetSample();
         this.unsubscribe?.(); this.repository.close(); await resetSample(); location.reload(); return;
       } else if (action === 'archive') downloadBlob(new Blob([JSON.stringify(await this.repository.legacyArchive(), null, 2)], { type: 'application/json' }), 'digital-jiaozi-旧设置备份.json');
     } catch (error) { this.notify(error); }

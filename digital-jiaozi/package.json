@@ -15,13 +15,18 @@
     "build": "npm run check && vite build",
     "build:module": "vite build --mode module",
     "preview": "vite preview --host 0.0.0.0",
-    "assets:prepare": "node scripts/prepare-asset.mjs"
+    "assets:prepare": "node scripts/prepare-asset.mjs",
+    "magnet:server": "node server/magnet/standalone.mjs",
+    "test:magnet-server": "node --test tests/magnet-server.test.mjs"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.4.0",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@types/node": "^22.0.0",
     "fake-indexeddb": "^6.2.4",
-    "sharp": "0.35.5",
     "typescript": "7.0.2",
     "vite": "8.3.5"
   }

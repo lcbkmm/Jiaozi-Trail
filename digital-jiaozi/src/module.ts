@@ -11,6 +11,8 @@ import { JiaoziApp } from './ui/app.ts';
 export interface MountOptions {
   assetBase?: string;
   publicBaseUrl?: string;
+  /** Same-origin feature API by default. Set only to the host's trusted proxy endpoint. */
+  magnetApiBase?: string;
   routePrefix?: string;
   routing?: 'hash' | 'memory';
   adapters?: HostAdapters;
@@ -54,6 +56,7 @@ export async function mountDigitalJiaozi(element: HTMLElement, options: MountOpt
     getJourneyUrl: app.getJourneyUrl.bind(app),
     navigate: app.navigate.bind(app),
     openJourney: app.openJourney.bind(app),
+    openMagnet: app.openMagnet.bind(app),
     on(listener: (event: ModuleEvent) => void) { listeners.add(listener); return () => listeners.delete(listener); },
     destroy() { listeners.clear(); app.destroy(); repository.close(); }
   };
