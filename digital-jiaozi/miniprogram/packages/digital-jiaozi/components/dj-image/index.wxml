@@ -1,0 +1,1 @@
+<view class="dj-wrap"><image wx:if="{{url && !failed}}" class="dj-img" src="{{url}}" mode="aspectFit" binderror="failed"/><view wx:else class="dj-fallback">暂缺</view><text wx:if="{{showLabel}}" class="dj-label">{{failed ? '图片暂不可用 · 示意' : label}}</text></view>
