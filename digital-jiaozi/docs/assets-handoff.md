@@ -1,46 +1,46 @@
-# 数字交子素材接入说明
+# 六张地标票图 · 当前素材交接
 
-2026-10-31 更新。给制作方的独立任务见 [给图片制作 AI 的交接](给图片制作AI的交接.md)，主卡运行几何见 [竖版布局](主卡竖版布局与素材接口.md)。新团队从零制作；历史 Flova 方案、横版图和验收决策不作为此次美学约束。
+2026-10-31 用户已交付六张正式 PNG，本模块已转换成 WebP 并启用。之前“未交付、16 张旧小程序素材”等清单仅是历史，不作为当前制作任务。此文件只规定用途与接入，不规定美学设计。
 
-## 当前缺口
+## 现在使用什么
 
-运行必需素材共 16 张：竖版底图 B01、十个地点透明章 C01–C10、五张商品图 E01–E05。当前全部是可替换占位，尚无本轮正式美术。B01 已从旧横图换为 600×900 的代码占位。D01–D03 仅为历史示例占位，当前页面不消费，不列入必做。
+| 稳定 ID | 地标 / 票面编号 | 程序资源（相对模块根目录） | 状态 |
+| --- | --- | --- | --- |
+| landmark-01 | 成都 IFS / CX1001 | public/assets/landmarks/landmark-01.webp | 正式图 |
+| landmark-02 | 太古里 / CX1002 | public/assets/landmarks/landmark-02.webp | 正式图 |
+| landmark-03 | 九眼桥 / CX1003 | public/assets/landmarks/landmark-03.webp | 正式图 |
+| landmark-04 | 大慈寺 / CX1004 | public/assets/landmarks/landmark-04.webp | 正式图 |
+| landmark-05 | 水井坊 / CX1005 | public/assets/landmarks/landmark-05.webp | 正式图 |
+| landmark-06 | 三圣乡 / CX1006 | public/assets/landmarks/landmark-06.webp | 正式图 |
 
-运行文件在 `miniprogram/packages/digital-jiaozi/assets/`；逻辑映射为同分包 `config/asset-manifest.json`。页面和 Canvas 只读运行文件及映射，不直接读取源图目录。动态用户照片经服务端生成，不写 manifest、不提交到仓库。
+用途为横版地标收藏纪念票，复用到收藏页、完整票面详情及地图纪念图。源图宽 750、高 285–294，当前保留比例、不放大不裁切；WebP quality90，约 107–120 KiB/张，六张共约674 KiB。原始用户 PNG 未修改，未放进运行时目录，校验和与转换回执见 `art-receipt.json`。
 
-## 导入单张素材
+`src/config/landmarks.ts` 是唯一业务素材 manifest：id、placeId、name、color、image、placeholder、map.fit/map.position。六条现在 placeholder=false；placeId 仍为 null，等待队友数据库映射。不要根据图片英文/编号猜测其数据库 ID。
 
-源图建议保存在模块 `assets-source/cards/`、`stamps/`、`products/`。在实现工作区执行，例如：
+## 后续只改素材配置
 
-```powershell
-npm run assets:import -- B01 D:\Codex\Jiaozi-Trail\digital-jiaozi\assets-source\cards\jiaozi-basic-portrait.png
-npm run assets:import -- C01 D:\Codex\Jiaozi-Trail\digital-jiaozi\assets-source\stamps\c01-chunxi-road.png
-```
-
-脚本保留源文件，写对应运行 PNG 和 manifest，记录源 SHA256，默认 `review-required`。开发方实际验收后将 `status` 改为 `approved`、`label` 改为空。新的来源记录替代旧 provenance，并清除旧占位 note。
-
-B01 校验 2:3 后等比压到 600×900，横版输入被拒绝；其他压到 512²。C 类必须是同时含透明区与可见主体的 PNG；脚本能检测 Alpha，但不能自动识别被画进图片内容的棋盘格，仍需看实际图。E 类可不透明。源图尺寸及全量映射见制作方交接。
-
-所有等级共用一张 B01。主卡布局为两列三行，由 `shared/card-layout.json` 经 setup 同步，页面和 Canvas 共用算法。标题、等级、编号、页码、章图及名称由代码叠加。改图片不改积分、照片或订单流程；新增地点需维护服务端 catalog 的 `assetId`。
-
-## 历史 map 导入（可选）
-
-新团队不需要供应商 ID 或旧回执即可使用上面的单张导入。只有继续使用已有 map 时才执行：
+如重新交付 PNG/JPEG/WebP，使用：
 
 ```powershell
-npm run assets:import -- --map D:\Codex\Jiaozi-Trail\digital-jiaozi\assets-source\asset-map.json
+npm run assets:prepare -- landmark-01 D:\Codex\incoming\交子_IFS.png
+# 同名输出已存在时需明确：
+npm run assets:prepare -- landmark-01 D:\Codex\incoming\交子_IFS.png --replace
 ```
 
-此模式严格检查正式编号、selected、有效 targetPath、PASS/PASS_WITH_NOTE，以及 `scripts/asset-acceptance.json` 中与当前 qaNote 精确匹配的处理决策；探针、无目标和未处理备注跳过。源路径不得离开 map 所在目录。旧横版 B01 决策已清空，不能将旧批准记录用于新竖图。新增决策必须由维护者实际验收后写入。
+脚本只读源图，校正方向、长边不超过1200、不放大、输出 WebP quality85。拒绝动态图与其他格式，默认不会覆盖已有输出。再次更新正式图片建议先把生成结果改为带版本的文件名（如 landmark-01-v2.webp），保留旧文件，再改 manifest 的 image。这样已保存快照引用的旧图片仍存在。
 
-## 验收和回退
+如果手动放新文件，也只需把 manifest 的 image 改成 `assets/landmarks/实际文件名.webp`，name/主色按交付内容更新，placeholder=false；id 不变，placeId 仅按宿主约定填写。不改打卡、积分、兑换代码。
 
-执行 `npm run check`、`npm run compile:wechat`、`npm test`、`npm run qa:images`。静态检查含分包 2 MiB 文件预算，最终体积以微信构建为准。导入正式图片后重新看透明边缘、手机尺寸可读性、六章与长名称，并在微信工具/真机验证加载、点击与导出。
+收藏票和详情使用完整 contain。地图默认复用完整横票 contain，可在单项 map 中设 cover 和百分比 position（如 `50% 50%`）进行主体显示调整；无需制作额外六张地图图。页面和 Canvas 共用相同位置与 fit 算法，不拉伸，cover 会按配置裁切。源票面已经含有图中文字，网页仍独立绘制地名、到访日期和业务状态，图片文字不参与积分计算。
 
-`var/qa/three-backgrounds.png` 为照片处理的三背景透明度测试；`six-stamps-screen-320/375/430.png` 为不同屏宽的竖版六章合成图；`canvas-export.png` 为实际分包导出函数在本地 Canvas 实现下的结果，包含真实 HTTP 照片章及故意失效的图片回退。它们都不是小程序截图，不纳入正式素材提交。
+代码负责纸底、边框、日期、布局、实体礼品演示符号；不新增地图底图、礼品实物或用户照片的制图任务。原 `landmark-0N.svg` 彩色占位保留供旧快照与测试使用，当前新页面启用的是 WebP。
 
-`dj-image` 加载失败显示“暂缺”；Canvas 保留底色/边框，逐章画回退，其他图片继续导出。`setup` 只补缺失占位，不覆盖现有正式运行图。私有照片通过受限媒体 URL 下载到临时文件后进入 Canvas。
+## 替换验收
 
-## 文件边界
+1. `npm run check && npm run build`，部署完整 dist（不要只替 HTML）。
+2. 浏览器 Network 检查六个 WebP 200、Content-Type 正确；收藏列表点击可看完整票面，naturalWidth 为实际图片宽度。
+3. 领取后地图显示对应图案，导出纪念图检查无缺图提示，JPEG/PNG/WebP 都可使用。跨域素材须允许 CORS，优先同站部署。
+4. `npm run build:module && npm run test:browser` 验证子路径与导出。测试还注入另一张合成 PNG 验证 manifest 替换及 cover/position，不用私照。
+5. 改配置后已领取的当前收藏用最新 manifest；旧旅程快照保留保存时素材路径，需要显示新版时主动再保存一段新纪念，不静默迁移旧记录。
 
-字体由 setup 下载固定 Noto CJK Sans 2.004 并校验 SHA256，授权见 `server/fonts/OFL.txt`。字体二进制、原照片、预览、私人章、数据库、密钥、依赖和验证图均忽略。运行 PNG 可提交；只暂存明确改动，不把另一窗口的源图或回执批量加入。
+运行时不引用 D 盘路径、微信文件目录或 assets-source。不要将生成端原图、临时回执和其他窗口未提交内容批量 git add。

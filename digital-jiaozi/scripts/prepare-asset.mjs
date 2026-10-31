@@ -1,0 +1,14 @@
+import sharp from 'sharp';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { mkdir, access } from 'node:fs/promises';
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const [id, source, flag] = process.argv.slice(2);
+if (!/^landmark-0[1-6]$/.test(id || '') || !source) throw new Error('用法：npm run assets:prepare -- landmark-01 D:\\Codex\\...\\source.png [--replace]');
+const target = resolve(root, 'public/assets/landmarks', id + '.webp');
+if (flag !== '--replace' && await access(target).then(() => true).catch(() => false)) throw new Error('目标已存在；确认替换时显式传 --replace。不修改源图。');
+const image = sharp(source, { limitInputPixels: 40_000_000 }), meta = await image.metadata();
+if (!['png', 'jpeg', 'webp'].includes(meta.format) || (meta.pages || 1) !== 1) throw new Error('只接受单张 PNG/JPEG/WebP');
+await mkdir(dirname(target), { recursive: true });
+await image.rotate().resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true }).webp({ quality: 85 }).toFile(target);
+console.log('已生成：' + target + '\n请在 src/config/landmarks.ts 将此编号 image 改为 assets/landmarks/' + id + '.webp，placeholder 改为 false；保持稳定 id 不变。');

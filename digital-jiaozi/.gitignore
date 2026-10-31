@@ -1,6 +1,9 @@
 # 本模块的依赖与构建产物
 node_modules/
 dist/
+dist-module/
+test-results/
+playwright-report/
 build/
 coverage/
 .venv/
@@ -25,7 +28,7 @@ Thumbs.db
 # Module-owned runtime data, private photos, previews and generated evidence
 var/
 .env.demo
-server/fonts/*.otf
-server/fonts/*.ttf
-miniprogram/project.private.config.json
+legacy/server/fonts/*.otf
+legacy/server/fonts/*.ttf
+legacy/miniprogram/project.private.config.json
 *.sqlite*

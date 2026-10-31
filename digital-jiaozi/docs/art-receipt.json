@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-31",
+  "providedBy": "用户本轮提供",
+  "processing": "WebP quality 90; 保持原始比例，不放大、不裁切，不修改原文件",
+  "assets": [
+    {
+      "id": "landmark-01",
+      "sourceFile": "交子_IFS.png",
+      "sourceSize": [
+        750,
+        287
+      ],
+      "sourceSha256": "d1d104f614bc871e65a8ebcd3c1d3f5604195950c26e4d98cbf03e82d00e56ed",
+      "target": "public/assets/landmarks/landmark-01.webp",
+      "bytes": 109602,
+      "targetSha256": "cf138a770947b6ebecc82223584390c3625324b1ca58f6fa5ec3a5854dfdfc98"
+    },
+    {
+      "id": "landmark-02",
+      "sourceFile": "交子_太古里.png",
+      "sourceSize": [
+        750,
+        287
+      ],
+      "sourceSha256": "2f1a45f6a7932768eace71b240173e11f354baf47925643337cf228ec2bdd4f0",
+      "target": "public/assets/landmarks/landmark-02.webp",
+      "bytes": 114718,
+      "targetSha256": "7e25488d1e495e968847280b1488b9e5a57edf0ab4315e3b37cc97765564741f"
+    },
+    {
+      "id": "landmark-03",
+      "sourceFile": "交子_九眼桥.png",
+      "sourceSize": [
+        750,
+        285
+      ],
+      "sourceSha256": "0461ad03819b80093bb51d761e1465e3a26dee4e8aea66862a9d002da8c9878c",
+      "target": "public/assets/landmarks/landmark-03.webp",
+      "bytes": 111694,
+      "targetSha256": "0f3ffd76d37edb28be99078a59c9196562bc09e9bfcd33657c5b365ade5569ec"
+    },
+    {
+      "id": "landmark-04",
+      "sourceFile": "交子_大慈寺.png",
+      "sourceSize": [
+        750,
+        285
+      ],
+      "sourceSha256": "7b6d98136854b45c515cd4e28cd080dd084240bb22aae47693b9a6ddf835c3af",
+      "target": "public/assets/landmarks/landmark-04.webp",
+      "bytes": 110078,
+      "targetSha256": "39305e6200994a17e3a2b2cd3a756d1ef2aaf97e4572cce5873b3615a668bf5d"
+    },
+    {
+      "id": "landmark-05",
+      "sourceFile": "交子_水井坊.png",
+      "sourceSize": [
+        750,
+        294
+      ],
+      "sourceSha256": "2730ab58b68413f632fbdd06cf17f6e1c753de2e5f9dd73d70ba48f7c74df8bb",
+      "target": "public/assets/landmarks/landmark-05.webp",
+      "bytes": 122448,
+      "targetSha256": "a6da2d536c2cabd667beb60949fea7624bd0b01f40cc0a7cf1d8e1ae68244abf"
+    },
+    {
+      "id": "landmark-06",
+      "sourceFile": "交子_三圣乡.png",
+      "sourceSize": [
+        750,
+        294
+      ],
+      "sourceSha256": "8115cfd9a36f345beb26f960b0f74f7e7c548b790deb81226c2c2f87942a726f",
+      "target": "public/assets/landmarks/landmark-06.webp",
+      "bytes": 121990,
+      "targetSha256": "f9824badae0513e43209a903b338a683b6b8619e4de0bdfbe044b1ec1718c829"
+    }
+  ]
+}
