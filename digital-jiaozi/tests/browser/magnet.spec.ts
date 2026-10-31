@@ -99,6 +99,83 @@ test('上传后无需填表或调整即可一键生成；选图和刷新不自�
   await page.locator('[data-magnet-action=generate]').click(); expect(calls.count).toBe(1);
 });
 
+test('点阵预览从0开始，等待进度有上限且重绘不重置；真实图片就绪后100再显示作品', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-10-31T13:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-10-31T13:00:01Z'));
+  let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; });
+  const calls = await mock(page, { delay: pending }); await page.goto(photos); await select(page);
+  await expect(page.locator('.dj-magnet-card img')).toHaveCount(0);
+  await expect(page.locator('.dj-magnet-card')).toContainText('尚未生成');
+  await adjustPhoto(page);
+  await expect(page.locator('[data-magnet-photo-preview]')).toBeVisible();
+  await page.locator('[data-magnet-action=generate]').click();
+  const progress = page.locator('.dj-magnet-edit [role=progressbar]');
+  await expect(progress).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.locator('.dj-magnet-source, .dj-magnet-original, .dj-magnet-card img')).toHaveCount(0);
+  await expect(page.locator('[data-magnet-photo-preview]')).toHaveCount(0);
+  await expect(page.locator('.dj-magnet-library [role=progressbar]')).toHaveAttribute('aria-valuenow', '0');
+  await page.clock.runFor(15000);
+  const before = Number(await progress.getAttribute('aria-valuenow')); expect(before).toBeGreaterThan(0); expect(before).toBeLessThan(95);
+  await page.locator('[data-magnet-action=check-service]').click();
+  await expect(progress).toHaveAttribute('aria-valuenow', String(before));
+  await page.clock.fastForward(165000);
+  await expect(progress).toHaveAttribute('aria-valuenow', '95');
+  await expect(page.locator('.dj-magnet-library [role=progressbar]')).toHaveAttribute('aria-valuenow', '95');
+  await expect(page.locator('.dj-magnet-original, .dj-magnet-card img')).toHaveCount(0);
+  for (const width of [320, 375, 430, 1365]) {
+    await page.setViewportSize({ width, height: 812 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  await page.setViewportSize({ width: 375, height: 812 });
+  await mkdir('var/qa/generation-progress', { recursive: true });
+  await page.locator('.dj-magnet-edit [data-magnet-generation]').screenshot({ path: 'var/qa/generation-progress/loading-375.png', animations: 'allow' });
+  release(); await expect(progress).toHaveAttribute('aria-valuenow', '100');
+  await expect(page.locator('.dj-magnet-edit [data-generation-label]')).toHaveText('生成完成');
+  await expect(page.locator('.dj-magnet-original')).toHaveCount(0);
+  await page.clock.runFor(550);
+  await expect(page.locator('.dj-magnet-original')).toBeVisible();
+  await expect(page.locator('.dj-magnet-edit > :first-child')).toHaveClass('dj-magnet-result');
+  await expect(page.locator('.dj-magnet-source')).not.toBeVisible();
+  await expect(page.locator('.dj-magnet-card img')).toHaveCount(1);
+  await expect(page.locator('[role=progressbar]')).toHaveCount(0); expect(calls.count).toBe(1);
+});
+
+test('再次生成隐藏上次图片；失败和刷新显示待确认卡片，停止百分比且不自动重发；支持减少动态效果', async ({ page }) => {
+  await mock(page); await page.goto(photos); await select(page); await generate(page);
+  await page.unroute('**' + prefix + '/**');
+  let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; });
+  const calls = await mock(page, { delay: pending, failure: { status: 504, uncertain: true, message: '结果暂未确认' } });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  page.once('dialog', dialog => dialog.accept()); await page.locator('[data-magnet-action=generate]').click();
+  await expect(page.locator('.dj-magnet-original, .dj-magnet-source, .dj-magnet-card img')).toHaveCount(0);
+  const dots = page.locator('.dj-magnet-edit .dj-generation-dots i').first();
+  await expect(dots).toHaveCSS('animation-name', 'none');
+  release(); await expect(page.locator('[data-magnet-error]')).toContainText('结果暂未确认');
+  await expect(page.locator('[role=progressbar]')).toHaveCount(0);
+  await expect(page.locator('.dj-magnet-edit [data-generation-label]')).toHaveText('等待确认结果');
+  await expect(page.locator('.dj-magnet-card img, .dj-magnet-original')).toHaveCount(0);
+  await page.reload(); await page.locator('.dj-magnet-card').first().click();
+  await expect(page.locator('.dj-magnet-edit [data-generation-label]')).toHaveText('等待确认结果');
+  await expect(page.locator('[role=progressbar]')).toHaveCount(0); expect(calls.count).toBe(1);
+  await page.locator('[data-magnet-action=recover]').click();
+  await expect(page.locator('.dj-magnet-original')).toBeVisible();
+  await expect(page.locator('.dj-magnet-card img')).toHaveCount(1);
+  expect(calls.count).toBe(1); expect(calls.recoveries).toBe(1);
+});
+
+test('返回图片未通过完整性校验时不出现100或作品图，保留待确认状态', async ({ page }) => {
+  await mock(page); await page.goto(photos); await select(page);
+  await page.route('**' + prefix + '/generate', async route => {
+    const raw = route.request().postDataBuffer()!.toString('latin1');
+    const requestId = /name="requestId"\r\n\r\n([^\r]+)/.exec(raw)![1];
+    await route.fulfill({ json: { ...response(requestId), sha256: '0'.repeat(64) } });
+  });
+  await page.locator('[data-magnet-action=generate]').click();
+  await expect(page.locator('[data-magnet-error]')).toContainText('完整性校验失败');
+  await expect(page.locator('[role=progressbar], .dj-magnet-original, .dj-magnet-card img')).toHaveCount(0);
+  await expect(page.locator('.dj-magnet-edit [data-generation-label]')).toHaveText('等待确认结果');
+});
+
 test('默认AI入口与本地贴片分开；带入原照片及名称不请求AI，主动生成才发单', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   const calls = await mock(page); await page.goto(photos);
@@ -179,6 +256,7 @@ test('冰箱贴完整流程：原图字节、独立海报、下半区真实裁�
   const expected = await sharp(landscape).extract({ left: 300, top: 0, width: 900, height: 600 }).removeAlpha().raw().toBuffer();
   const actual = await sharp(poster).extract({ left: 0, top: 600, width: 900, height: 600 }).removeAlpha().raw().toBuffer();
   expect(actual).toEqual(expected);
+  await adjustPhoto(page);
   const previewSamples = await page.locator('[data-magnet-photo-preview]').evaluate(c => {
     const ctx = (c as HTMLCanvasElement).getContext('2d')!;
     return [100, 400].map(x => Array.from(ctx.getImageData(x, 200, 1, 1).data).slice(0, 3));

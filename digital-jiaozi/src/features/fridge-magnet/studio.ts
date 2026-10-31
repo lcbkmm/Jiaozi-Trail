@@ -7,6 +7,7 @@ import type { MagnetWork } from './types.ts';
 import { MagnetRepository } from './repository.ts';
 import { GenerationError, MagnetClient } from './client.ts';
 import { composePoster, photoPreview } from './poster-composer.ts';
+import { estimatedGenerationProgress, generationPreview } from './generation-preview.ts';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 export class MagnetStudio {
@@ -16,6 +17,9 @@ export class MagnetStudio {
   private works: MagnetWork[] = [];
   private urls: string[] = [];
   private inFlight = new Set<string>();
+  private previews = new Map<string, { startedAt: number; complete: boolean }>();
+  private previewTimer?: number;
+  private completionTimers = new Map<number, () => void>();
   private configured = false;
   private timeoutMs = 180000;
   private serviceMessage = '正在检查生成服务…';
@@ -60,6 +64,9 @@ export class MagnetStudio {
   }
   destroy() {
     this.disposed = true; this.selection++;
+    window.clearInterval(this.previewTimer); this.previewTimer = undefined;
+    this.previews.clear();
+    for (const finish of this.completionTimers.values()) finish();
     // An in-flight upstream task is not cancelled by leaving the view; persist its result before closing IDB.
     if (!this.inFlight.size) this.repository?.close();
     this.urls.forEach(URL.revokeObjectURL);
@@ -68,6 +75,35 @@ export class MagnetStudio {
   private text(error: unknown) { return error instanceof Error ? error.message : '操作未完成，请保留当前图片后重试'; }
   private url(blob: Blob) { const url = URL.createObjectURL(blob); this.urls.push(url); return url; }
   private locked() { return this.choosing || this.saving || this.composing || !!(this.work && this.inFlight.has(this.work.id)); }
+  private awaiting(work: MagnetWork) { return this.inFlight.has(work.id) || work.task?.state === 'GENERATING' || work.task?.state === 'UNKNOWN'; }
+  private updateGenerationPreviews() {
+    for (const element of this.element.querySelectorAll<HTMLElement>('[data-magnet-generation]')) {
+      const preview = this.previews.get(element.dataset.magnetGeneration!);
+      if (!preview) continue;
+      const percent = preview.complete ? 100 : estimatedGenerationProgress(preview.startedAt);
+      element.dataset.generationState = preview.complete ? 'complete' : 'generating';
+      element.querySelector('[data-generation-percent]')!.textContent = `${percent}%`;
+      element.querySelector('[data-generation-label]')!.textContent = preview.complete ? '生成完成' : '正在生成图片';
+      element.querySelector('[data-generation-caption]')!.textContent = preview.complete ? '图片已就绪' : percent >= 90 ? '预计进度 · 请再稍候' : '预计进度';
+      element.querySelector('[role=progressbar]')!.setAttribute('aria-valuenow', String(percent));
+      element.querySelector<HTMLElement>('[data-generation-fill]')!.style.width = `${percent}%`;
+    }
+  }
+  private startPreview(work: MagnetWork) {
+    if (this.disposed) return;
+    this.previews.set(work.id, { startedAt: Date.parse(work.task!.startedAt), complete: false });
+    if (this.previewTimer === undefined) this.previewTimer = window.setInterval(() => this.updateGenerationPreviews(), 250);
+  }
+  private async completePreview(id: string) {
+    const preview = this.previews.get(id); if (preview) preview.complete = true;
+    if (this.disposed) return;
+    this.updateGenerationPreviews();
+    // Briefly show 100% only after a real result exists; never delay background work or a departed view.
+    if (this.work?.id === id) await new Promise<void>(resolve => {
+      const finish = () => { window.clearTimeout(timer); this.completionTimers.delete(timer); resolve(); };
+      const timer = window.setTimeout(finish, 500); this.completionTimers.set(timer, finish);
+    });
+  }
   private onClick = (event: Event) => {
     const button = (event.target as Element).closest<HTMLElement>('[data-magnet-action]');
     if (!button || button instanceof HTMLButtonElement && button.disabled) return;
@@ -152,7 +188,9 @@ export class MagnetStudio {
     try { await this.persist(); this.work = await repo.begin(this.work, requestId, repeat); }
     finally { this.saving = false; }
     const submitted = structuredClone(this.work);
-    this.inFlight.add(submitted.id); this.error = ''; this.message = '正在将照片生成珐琅效果，请稍候。离开或刷新不会取消供应商任务，请勿重复提交。'; this.render();
+    this.inFlight.add(submitted.id); this.startPreview(submitted);
+    this.works = this.works.map(item => item.id === submitted.id ? submitted : item);
+    this.error = ''; this.message = '正在生成你的珐琅冰箱贴，完成后会自动显示。'; this.render();
     try {
       let panel;
       try { panel = await this.client.generate(submitted, this.timeoutMs); }
@@ -170,8 +208,11 @@ export class MagnetStudio {
       }
       if (this.work?.id === submitted.id) { this.work = completed; this.message = 'AI生成成功。下方是完整生成原图，可直接下载；纪念海报可另行制作。'; }
       else this.message = '上一张照片已生成，已归入对应作品；当前照片未改变。';
+      await this.completePreview(submitted.id);
     } finally {
       this.inFlight.delete(submitted.id);
+      this.previews.delete(submitted.id);
+      if (!this.previews.size) { window.clearInterval(this.previewTimer); this.previewTimer = undefined; }
       try { this.works = await repo.list(); } catch { /* In-memory result remains downloadable. */ }
       if (this.disposed && !this.inFlight.size) repo.close();
       if (!this.disposed) this.render();
@@ -240,32 +281,40 @@ export class MagnetStudio {
   private render() {
     if (this.disposed) return;
     this.urls.forEach(URL.revokeObjectURL); this.urls = [];
-    const w = this.work, locked = this.locked(), pending = w && this.inFlight.has(w.id);
+    const w = this.work, locked = this.locked(), pending = w && this.inFlight.has(w.id), awaiting = w && this.awaiting(w);
     const adjustmentsOpen = this.element.querySelector<HTMLDetailsElement>('[data-magnet-adjustments]')?.open ?? false;
+    const reference = w ? `<figure class="dj-magnet-reference"><figcaption>上传的照片</figcaption><img class="dj-magnet-source" src="${this.url(w.sourcePhoto)}" alt="上传的原照片，仅作生成参考"></figure>` : '';
     this.element.innerHTML = `<div class="dj-panel"><p class="dj-eyebrow">AI 照片创作</p><h2 tabindex="-1">照片生成珐琅冰箱贴</h2>
       <p>上传照片，一键生成。AI 自动识别主体和类型、搭配颜色，无需填写。</p><p class="dj-hint">把照片变成珐琅质感的数字效果图，生成后可另做纪念海报。不增加或扣除旅游积分。${this.options.sample ? '当前为独立示例作品库。' : ''}</p>
       <p class="dj-magnet-service">${esc(this.serviceMessage)} <button class="dj-button" data-magnet-action="check-service">检查服务</button></p>
       <div class="dj-magnet-actions"><label class="dj-button dj-primary">选择照片<input type="file" accept="image/jpeg,image/png,image/webp" aria-label="冰箱贴选择照片"></label><label class="dj-button">拍照<input type="file" accept="image/*" capture="environment" aria-label="冰箱贴拍照"></label></div>
       <p class="dj-hint">支持 JPEG / PNG / WebP，最大15 MB、2400万像素。拍照不可用时请选择相册文件。大图副本长边最多2048像素。</p>
       <p role="alert" data-magnet-error class="dj-magnet-error">${esc(this.error)}</p><p role="status" aria-live="polite" data-magnet-status>${esc(this.message)}</p>
-      ${w ? `<div class="dj-magnet-edit"><img class="dj-magnet-source" src="${this.url(w.sourcePhoto)}" alt="本次用于 AI 生成的完整照片">
+      ${w ? `<div class="dj-magnet-edit">${awaiting ? generationPreview(pending ? 'generating' : 'unconfirmed', w.id) : w.panel ? this.result(w, locked) : reference}
         <div class="dj-magnet-actions"><button class="dj-button dj-primary" data-magnet-action="generate" ${locked || !this.configured || !this.repository ? 'disabled' : ''}>${pending ? '生成中，请稍候…' : w.task ? '重新生成（新请求）' : '一键生成珐琅冰箱贴'}</button></div>
         <p class="dj-hint">照片将发送至 AI 生成，作品保存在当前浏览器。生成可能需要数十秒；刷新不会自动重新发送。</p>
-        <details data-magnet-adjustments ${adjustmentsOpen ? 'open' : ''}><summary>可选：调整照片方向与海报裁切</summary><p class="dj-hint">无需调整即可生成。AI 使用上方完整照片；下方 3:2 裁切仅用于可选纪念海报。照片副本 ${w.sourceWidth} × ${w.sourceHeight} px，原文件另存于作品库。</p>
+        ${!awaiting ? `<details data-magnet-adjustments ${adjustmentsOpen ? 'open' : ''}><summary>可选：调整照片方向与海报裁切</summary>${w.panel ? reference : ''}<p class="dj-hint">无需调整即可生成。AI 使用上传的完整照片；下方 3:2 裁切仅用于可选纪念海报。照片副本 ${w.sourceWidth} × ${w.sourceHeight} px，原文件另存于作品库。</p>
         <canvas data-magnet-photo-preview aria-label="海报下半区裁切预览"></canvas>
         <fieldset ${locked ? 'disabled' : ''}><legend>移动照片焦点与缩放</legend>${(['x','y','zoom'] as const).map((key, i) => `<label>${['水平焦点','垂直焦点','照片缩放'][i]}<input type="range" data-crop="${key}" aria-label="冰箱贴${['水平焦点','垂直焦点','照片缩放'][i]}" min="${key === 'zoom' ? 1 : 0}" max="${key === 'zoom' ? 4 : 1}" step="0.01" value="${w.photoCrop[key]}"></label>`).join('')}</fieldset>
         <div class="dj-magnet-actions"><button class="dj-button" data-magnet-action="rotate" ${locked || w.task ? 'disabled' : ''}>旋转照片90°</button><button class="dj-button" data-magnet-action="download-source">下载照片副本</button></div>
-        </details>
+        </details>` : ''}
         <button class="dj-button" data-magnet-action="save" ${locked ? 'disabled' : ''}>保存草稿</button>
         ${w.task && !pending ? `<p class="dj-magnet-task">${w.task.state === 'GENERATING' || w.task.state === 'UNKNOWN' ? '上次请求结果暂未确认，可能仍在供应商处理或计费。不会自动重发。' : w.task.state === 'FAILED' ? '上次生成失败，草稿已保留。' : '生成原图已返回。'} ${esc(w.task.error || '')}</p>${['GENERATING','UNKNOWN'].includes(w.task.state) ? '<button class="dj-button" data-magnet-action="recover">查询本次临时结果（不重新生成）</button>' : ''}` : ''}
-        ${w.panel ? `<div class="dj-magnet-result"><h3>完整生成原图</h3><img class="dj-magnet-original" src="${this.url(w.panel.blob)}" alt="完整 AI 生成原图"><p class="dj-hint">${w.panel.width} × ${w.panel.height} px · ${esc(w.panel.model)} · ${esc(w.panel.provider)}。此原图不裁切、不缩放、不加字。</p>
-        <div class="dj-magnet-actions"><button class="dj-button dj-primary" data-magnet-action="download-panel">下载生成原图</button><a class="dj-button" href="${this.url(w.panel.blob)}" target="_blank" rel="noopener">打开生成原图</a><button class="dj-button" data-magnet-action="show-composer" ${locked ? 'disabled' : ''}>制作纪念海报</button></div><p class="dj-hint">手机未自动保存相册时，可打开原图长按保存，或在浏览器下载列表查找。</p></div>` : ''}
-        ${this.showComposer && w.panel ? this.composer(w, locked) : ''}
-        ${w.poster ? `<div class="dj-magnet-result"><h3>纪念海报 · 独立导出</h3><img class="dj-magnet-poster" src="${this.url(w.poster.blob)}" alt="已合成纪念海报"><p>${w.poster.width} × ${w.poster.height} px · 3:4 · 上下各50%</p><p class="dj-hint">这是最近一次合成，调整参数后请重新合成。效果图不等于生产刀模。</p><div class="dj-magnet-actions"><button class="dj-button" data-magnet-action="download-poster">下载纪念海报</button><a class="dj-button" href="${this.url(w.poster.blob)}" target="_blank" rel="noopener">打开海报长按保存</a></div></div>` : ''}
+        ${this.showComposer && w.panel && !awaiting ? this.composer(w, locked) : ''}
+        ${w.poster && !awaiting ? `<div class="dj-magnet-result"><h3>纪念海报 · 独立导出</h3><img class="dj-magnet-poster" src="${this.url(w.poster.blob)}" alt="已合成纪念海报"><p>${w.poster.width} × ${w.poster.height} px · 3:4 · 上下各50%</p><p class="dj-hint">这是最近一次合成，调整参数后请重新合成。效果图不等于生产刀模。</p><div class="dj-magnet-actions"><button class="dj-button" data-magnet-action="download-poster">下载纪念海报</button><a class="dj-button" href="${this.url(w.poster.blob)}" target="_blank" rel="noopener">打开海报长按保存</a></div></div>` : ''}
       </div>` : ''}</div>
-      <section class="dj-panel"><h2>本机冰箱贴作品库 · ${this.works.length}</h2><p class="dj-hint">草稿、原照片、生成原图和海报保存在当前浏览器。更换浏览器或清除网站数据会丢失，请及时下载。</p><div class="dj-magnet-library">${this.works.map(item => `<button class="dj-magnet-card" data-magnet-action="open" data-id="${item.id}"><img src="${this.url(item.panel?.blob || item.sourcePhoto)}" alt="${esc(item.title || '旅行照片作品')}"><span>${esc(item.title || '旅行照片作品')}</span><small>${item.panel ? '有生成原图' : item.task ? '有生成记录' : '草稿'}${item.poster ? ' · 有海报' : ''}</small></button>`).join('')}</div></section>`;
+      <section class="dj-panel"><h2>本机冰箱贴作品库 · ${this.works.length}</h2><p class="dj-hint">草稿与生成中的作品显示状态卡片，完成后才显示作品图。作品保存在当前浏览器，请及时下载。</p><div class="dj-magnet-library">${this.works.map(item => {
+        const busy = this.awaiting(item), kind = this.inFlight.has(item.id) ? 'generating' : busy ? 'unconfirmed' : item.task?.state === 'FAILED' ? 'failed' : 'draft';
+        return `<button class="dj-magnet-card" data-magnet-action="open" data-id="${item.id}">${item.panel && !busy ? `<img src="${this.url(item.panel.blob)}" alt="${esc(item.title || '已生成的旅行照片作品')}">` : generationPreview(kind, item.id)}<span>${esc(item.title || '旅行照片作品')}</span><small>${busy ? this.inFlight.has(item.id) ? '正在生成' : '等待确认结果' : item.panel ? item.task?.id === item.panel.requestId ? '已生成' : '保留上次作品' : item.task?.state === 'FAILED' ? '生成未完成' : '草稿 · 尚未生成'}${item.poster ? ' · 有海报' : ''}</small></button>`;
+      }).join('')}</div></section>`;
+    this.updateGenerationPreviews();
     void this.updateCropPreview();
     this.updatePanelOverlay();
+  }
+  private result(w: MagnetWork, locked: boolean) {
+    const panel = w.panel!;
+    return `<div class="dj-magnet-result"><h3>${w.task?.id === panel.requestId ? '完整生成原图' : '上次已完成的生成原图'}</h3><img class="dj-magnet-original" src="${this.url(panel.blob)}" alt="完整 AI 生成原图"><p class="dj-hint">${panel.width} × ${panel.height} px · ${esc(panel.model)} · ${esc(panel.provider)}。此原图不裁切、不缩放、不加字。</p>
+      <div class="dj-magnet-actions"><button class="dj-button dj-primary" data-magnet-action="download-panel">下载生成原图</button><a class="dj-button" href="${this.url(panel.blob)}" target="_blank" rel="noopener">打开生成原图</a><button class="dj-button" data-magnet-action="show-composer" ${locked ? 'disabled' : ''}>制作纪念海报</button></div><p class="dj-hint">手机未自动保存相册时，可打开原图长按保存，或在浏览器下载列表查找。</p></div>`;
   }
   private composer(w: MagnetWork, locked: boolean) {
     const crop = w.panelCrop;
