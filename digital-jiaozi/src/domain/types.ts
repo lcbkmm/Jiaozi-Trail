@@ -1,8 +1,8 @@
-export type Source = 'demo' | 'host';
+export type Source = 'demo' | 'host' | 'photo';
 export interface Profile { id: string; createdAt: string; schema: 1 }
 export interface Wallet { activityId: string; earned: number; balance: number }
 export interface PlaceSnapshot { landmarkId: string; placeId: string | null; name: string; color: string; image: string; placeholder: boolean; map: { fit: 'contain' | 'cover'; position: string } }
-export interface RouteSnapshot { id: string; title: string; source: Source; places: { id: string; name: string }[]; description?: string }
+export interface RouteSnapshot { id: string; title: string; source: 'demo' | 'host'; places: { id: string; name: string }[]; description?: string }
 export interface Journey {
   id: string; activityId: string; title: string; createdAt: string; savedAt?: string;
   route: RouteSnapshot | null; claimIds: string[]; photoIds: string[];
@@ -11,6 +11,8 @@ export interface Journey {
 export interface Claim {
   id: string; activityId: string; landmarkId: string; journeyId: string; eventId: string;
   source: Source; occurredAt: string; receivedAt: string; order: number; place: PlaceSnapshot;
+  /** Locally saved photo; not a location or purchase verification. */
+  checkinMediaId?: string;
 }
 export interface Ledger { id: string; activityId: string; kind: 'earn' | 'spend' | 'refund'; amount: number; title: string; createdAt: string; reference: string }
 export interface Redemption { id: string; activityId: string; requestId: string; giftId: string; title: string; cost: number; status: 'pending' | 'received' | 'cancelled'; createdAt: string }
@@ -18,9 +20,13 @@ export interface Media { id: string; blob: Blob; createdAt: string }
 export interface Photo { id: string; journeyId: string; mediaId: string; title: string; createdAt: string; mode: 'color' | 'tone' | 'outline' }
 export interface VisitInput {
   eventId: string; activityId: string; landmarkId?: string; placeId?: string;
-  journeyId: string; routeId?: string; occurredAt: string; source: Source;
+  journeyId: string; routeId?: string; occurredAt: string; source: 'demo' | 'host';
 }
-export interface State { profile: Profile; wallet: Wallet; claims: Claim[]; journeys: Journey[]; photos: Photo[]; ledger: Ledger[]; redemptions: Redemption[]; archives: { id: string; reason: string; createdAt: string }[] }
+export interface PhotoCheckinInput { eventId: string; landmarkId: string; journeyId: string; blob: Blob }
+export interface Merchant { id: string; name: string; placeId?: string; landmarkId?: string }
+export interface MerchantCheckin { id: string; activityId: string; merchantId: string; placeName: string; journeyId: string; routeId?: string; eventId: string; day: string; occurredAt: string; source: 'demo'; amount: number }
+export interface MerchantCheckinInput { merchantId: string; journeyId: string; routeId?: string; eventId: string; source: 'demo' }
+export interface State { profile: Profile; wallet: Wallet; claims: Claim[]; journeys: Journey[]; photos: Photo[]; ledger: Ledger[]; redemptions: Redemption[]; merchantCheckins: MerchantCheckin[]; archives: { id: string; reason: string; createdAt: string }[] }
 export class JiaoziError extends Error {
   code: string;
   constructor(code: string, message: string) { super(message); this.code = code; this.name = 'JiaoziError'; }

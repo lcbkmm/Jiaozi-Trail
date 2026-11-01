@@ -8,5 +8,5 @@ export default defineConfig(({ mode }) => ({
   build: mode === 'module' ? {
     outDir: 'dist-module',
     lib: { entry: 'src/module.ts', formats: ['es'], fileName: 'digital-jiaozi', cssFileName: 'digital-jiaozi' }
-  } : { outDir: 'dist', target: 'es2022' }
+  } : { outDir: 'dist', target: 'es2022', rolldownOptions: { input: { main: 'index.html', demo: 'demo.html' } } }
 }));

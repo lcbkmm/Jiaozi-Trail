@@ -5,7 +5,7 @@ import { mkdir } from 'node:fs/promises';
 import { ACTIVITY } from '../../src/config/rules.ts';
 import { LANDMARKS } from '../../src/config/landmarks.ts';
 
-const home = '/preview/#/digital-jiaozi';
+const home = '/preview/demo.html#/digital-jiaozi';
 async function nav(page: Page, id: string) { await page.locator(`nav [data-id="${id}"]`).click(); }
 async function collect(page: Page, count = 6) {
   await nav(page, 'collection');
@@ -85,17 +85,18 @@ test('六张正式票图全部加载、完整比例、手机各视图可读且�
 
 test('真实浏览器多标签并发打卡，重复点击不重复奖励；示例重置隔离个人', async ({page,context}) => {
   await page.goto(home); await nav(page, 'collection');
-  const second = await context.newPage(); await second.goto('/preview/#/digital-jiaozi/collection');
+  const second = await context.newPage(); await second.goto('/preview/demo.html#/digital-jiaozi/collection');
   const button='[data-action=visit][data-id=landmark-01]';
   // Synchronous double dispatch is intentionally faster than disabling UI; IDB remains the guard.
   await Promise.all([page.locator(button).evaluate(el=>{ (el as HTMLButtonElement).click(); (el as HTMLButtonElement).click(); }), second.locator(button).evaluate(el=>(el as HTMLButtonElement).click())]);
   await nav(page,'home'); await nav(second,'home');
   await expect(page.getByTestId('balance')).toHaveText('10'); await expect(second.getByTestId('balance')).toHaveText('10');
-  await second.close(); await page.locator('[data-action=sample]').click();
-  await expect(page.locator('.dj-sample-banner')).toBeVisible(); await expect(page.getByTestId('balance')).toHaveText('0');
-  await collect(page,2); await nav(page,'home'); await page.locator('[data-action=reset-sample]').click();
+  await second.close();
+  await page.goto('/preview/#/digital-jiaozi'); await expect(page.getByTestId('balance')).toHaveText('0');
+  await page.goto(home); await expect(page.getByTestId('balance')).toHaveText('10');
+  await page.locator('[data-action=reset-sample]').click();
   await expect(page.getByTestId('balance')).toHaveText('0'); await page.locator('[data-action=personal]').click();
-  await expect(page.getByTestId('balance')).toHaveText('10');
+  await expect(page.getByTestId('balance')).toHaveText('0');
 });
 
 test('独立60分兑换NFC后记忆完整，取消退分一次、领取终态', async ({page}) => {
@@ -109,7 +110,7 @@ test('独立60分兑换NFC后记忆完整，取消退分一次、领取终态', 
 });
 
 test('真实照片上传、旋转、裁剪、三模式、预览Blob相同、关闭后恢复和导出', async ({page,context}) => {
-  await page.goto(home); await nav(page,'photos');
+  await page.goto('/preview/#/digital-jiaozi'); await nav(page,'photos');
   await page.locator('[data-photo-tools] summary').click();
   await page.getByLabel('选择相册照片',{exact:true}).setInputFiles({name:'asymmetric-fixture.png',mimeType:'image/png',buffer:await testPhoto()});
   await expect(page.locator('.dj-crop img')).toBeVisible();
@@ -159,10 +160,11 @@ test('换图manifest、宿主接口、内存路由隔离、缺图回退及导出
   await expect(page.locator('.dj-toast')).toContainText('缺失资源');
 });
 
-test('存储中途失败显示真实错误，余额和图案均不假成功；未知旧版本保留', async ({page}) => {
+test('存储中途失败显示真实错误，余额和图案均不假成功；未知未来版本保留', async ({page}) => {
   await page.addInitScript(()=>{ const original=IDBObjectStore.prototype.add; IDBObjectStore.prototype.add=function(...args: Parameters<typeof original>){if(this.name==='ledger') throw new DOMException('测试存储空间不足','QuotaExceededError'); return original.apply(this,args)}; });
   await page.goto(home);await nav(page,'collection');await page.locator('[data-action=visit][data-id=landmark-01]').click();
   await expect(page.locator('.dj-toast')).toContainText('存储空间不足');await nav(page,'home');await expect(page.getByTestId('balance')).toHaveText('0');await expect(page.getByTestId('map-element')).toHaveCount(0);
-  await page.evaluate(async()=>{await new Promise<void>((resolve)=>{ const r=indexedDB.open('digital-jiaozi:personal',2);r.onupgradeneeded=()=>r.result.createObjectStore('future-records');r.onsuccess=()=>{r.result.close();resolve()} })});
+  await page.evaluate(async()=>{await new Promise<void>((resolve)=>{ const r=indexedDB.open('digital-jiaozi:sample',3);r.onupgradeneeded=()=>r.result.createObjectStore('future-records').add('preserved', 'future');r.onsuccess=()=>{r.result.close();resolve()} })});
   await page.reload();await expect(page.getByRole('heading',{name:'暂时无法打开本地交子档案'})).toBeVisible();await expect(page.locator('.dj-fatal')).toContainText('原记录未删除');
+  expect(await page.evaluate(async()=>await new Promise(resolve=>{const r=indexedDB.open('digital-jiaozi:sample',3);r.onsuccess=()=>{const db=r.result,tx=db.transaction('future-records'),q=tx.objectStore('future-records').get('future');q.onsuccess=()=>resolve(q.result);tx.oncomplete=()=>db.close()}}))).toBe('preserved');
 });

@@ -1,5 +1,11 @@
 export type View = 'home' | 'collection' | 'rewards' | 'journey' | 'photos';
 export interface Navigation { view: View; journeyId?: string; tagId?: string; sample: boolean; error?: string }
+// Only the integrated deployment has a known map sibling. Standalone demos do not.
+export function mapReturnUrl(pageUrl: string): string | undefined {
+  const url = new URL(pageUrl);
+  if (!/\/assets\/digital-jiaozi\/(?:(?:index|demo)\.html)?$/.test(url.pathname)) return undefined;
+  return new URL('../../baidu-map.html', url).href;
+}
 export function parseRoute(hash: string, prefix = '/digital-jiaozi'): Navigation {
   const raw = hash.replace(/^#/, '') || prefix;
   const [path, query = ''] = raw.split('?'), params = new URLSearchParams(query);

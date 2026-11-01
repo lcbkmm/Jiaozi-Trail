@@ -312,7 +312,7 @@ test('旧请求异步返回不覆盖新照片；刷新不自动重发未知任�
   release(); await expect(page.locator('[data-magnet-status]')).toContainText('上一张照片');
   await expect(page.locator('.dj-magnet-source')).toHaveJSProperty('naturalWidth', 120); await expect(page.locator('.dj-magnet-original')).toHaveCount(0);
   await page.reload(); await expect(page.locator('.dj-magnet-card')).toHaveCount(2); expect(calls.count).toBe(1);
-  await page.locator('nav [data-id=home]').click(); await page.locator('[data-action=sample]').click();
+  await page.goto('/preview/demo.html#/digital-jiaozi');
   await expect(page.locator('.dj-sample-banner')).toBeVisible(); await page.locator('nav [data-id=photos]').click();
   await expect(page.locator('.dj-magnet-card')).toHaveCount(0); await select(page); await page.locator('nav [data-id=home]').click();
   await page.locator('[data-action=reset-sample]').click(); await page.locator('[data-action=personal]').click(); await page.locator('nav [data-id=photos]').click();

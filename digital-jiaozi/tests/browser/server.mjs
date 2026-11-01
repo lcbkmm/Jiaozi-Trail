@@ -15,7 +15,10 @@ const mime = { '.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 createServer(async(req,res)=>{
   try {
     const path = decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+    if(path==='/map-parent.html') { res.writeHead(200,{'Content-Type':mime['.html']});res.end('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Map bridge fixture</title><body style="margin:0"></body></html>');return; }
     if(path==='/host-fixture.html') { res.writeHead(200,{'Content-Type':mime['.html']});res.end(hostPage);return; }
+    if(path==='/visitor-host.html') { res.writeHead(200,{'Content-Type':mime['.html']});res.end('<!doctype html><html lang="zh-CN"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/module/digital-jiaozi.css"><body style="margin:0"><div id="mount"></div><script type="module" src="/visitor-fixture.js"></script></body></html>');return; }
+    if(path==='/visitor-fixture.js') { res.writeHead(200,{'Content-Type':mime['.js']});res.end(await readFile(resolve(root,'tests/browser/visitor-fixture.js')));return; }
     const folder=path.startsWith('/module/')?'dist-module':path.startsWith('/preview/')?'dist':null;
     if(!folder) {res.writeHead(404);res.end();return;}
     const base=resolve(root,folder), tail=path.replace(/^\/(module|preview)\//,'')||'index.html', file=resolve(base,tail);
