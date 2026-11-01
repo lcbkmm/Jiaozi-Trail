@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>春熙路 · 三维街区漫游</title>
+  <link rel="stylesheet" href="./local-map.css">
+  <link rel="stylesheet" href="./game-map.css">
+  <link rel="stylesheet" href="./game-map-planner.css">
+  <link rel="stylesheet" href="./game-map-avatar-editor.css">
+  <link rel="stylesheet" href="./game-map-player.css">
+  <link rel="stylesheet" href="./game-map-gameplay.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="chapter"><span class="chapter-number">01</span><div><p class="eyebrow">交子漫游 / 成都篇</p><h1>春熙路<span>街区探索地图</span></h1></div></div>
+    <div class="chapter-meta"><span class="live-dot"></span> 成都 · 春熙路 <span class="divider">/</span> 三维卡通街区</div>
+  </header>
+  <main id="stage" aria-label="春熙路游戏地图板块">
+    <div id="viewport" tabindex="0" aria-label="三维地图，左键拖动，右键转动视角，滚轮靠近；WASD 或方向键推进">
+      <canvas id="scene-canvas" aria-label="真实春熙路道路与建筑的三维卡通场景"></canvas>
+      <div id="markers"></div>
+      <div id="building-labels" aria-hidden="true"></div>
+    </div>
+    <div class="scene-caption"><span class="gold-star">✦</span><div><strong>晴空之下 · 春熙日常</strong><small>阳光落在街角，故事发生在这里</small></div></div>
+    <div class="camera-bar glass" aria-label="视角与清晰度">
+      <button id="view-overview" aria-pressed="true"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg></span><span>鸟瞰</span></button>
+      <button id="view-street" aria-pressed="false"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 8 18-8-5-8 5 8-18Zm0 0v13"/></svg></span><span>向前漫游</span></button>
+      <button id="view-plan" aria-pressed="false"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></span><span>位置核对</span></button>
+      <span class="camera-divider"></span>
+      <label for="quality">画质</label><select id="quality"><option value="high" selected>精细</option><option value="standard">流畅</option></select>
+    </div>
+    <div id="scene-meter" class="scene-meter">正在建立街区</div>
+    <aside id="map-tool-dock" class="tool-dock" data-collapsed="false" aria-label="探索工具栏">
+      <button id="toggle-map-tools" type="button" class="hud-fold tools-fold" aria-expanded="true" aria-controls="map-tool-actions" aria-label="收起探索工具" title="收起探索工具">
+        <svg class="fold-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg><span id="tools-fold-label">探索工具</span>
+      </button>
+      <nav id="map-tool-actions" class="map-tools" aria-label="地图工具">
+        <button id="open-jiaozi" aria-haspopup="dialog" aria-expanded="false" aria-controls="jiaozi-panel"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 5v14m10-10-3 3 3 3m-3-3h6"/></svg></span><span class="tool-copy">交子收藏<small id="jiaozi-points">账本同步中</small></span></button>
+        <button id="open-planner" disabled aria-haspopup="dialog" aria-expanded="false"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15"/></svg></span><span class="tool-copy">定制路线</span></button>
+        <button id="route" disabled aria-pressed="false"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M8 5h8a4 4 0 0 1 0 8H8a3 3 0 0 0 0 6h8"/></svg></span><span class="tool-copy">探索路线</span></button>
+        <button id="test-position" disabled><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M6 20v-2a6 6 0 0 1 12 0v2M3 9V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v4"/></svg></span><span class="tool-copy">找到人物</span></button>
+      </nav>
+    </aside>
+    <div class="map-reference" aria-label="方向与比例尺"><button id="north" aria-label="转向正北"><span id="north-arrow">↑</span>N</button><div id="scale-bar"><i></i><span id="scale-text">100m</span></div></div>
+    <div id="road-labels" aria-hidden="true"></div>
+    <aside id="reference-note" class="reference-note glass" hidden><strong>正北 · 地面轮廓核对</strong><span>浅色为建筑，深线为轮廓；地点标记尖端为原始坐标。</span><span>当前约 1km²，仅覆盖太古里西入口，未包含完整太古里与大慈寺。</span></aside>
+    <div class="travel-pad" aria-label="人物与沿视角方向移动"><button id="advance" aria-label="向前推进" title="向前推进"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V4m-6 6 6-6 6 6"/></svg></span></button><button id="retreat" aria-label="向后移动" title="向后移动"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16m-6-6 6 6 6-6"/></svg></span></button><button id="customize-avatar" disabled aria-label="我的形象" title="我的形象" aria-haspopup="dialog" aria-expanded="false" aria-controls="map-avatar-editor"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 3-5 3-2 5 4 2 2-3v11h10V10l2 3 4-2-2-5-5-3a4 4 0 0 1-8 0Z"/></svg></span><span class="travel-label">我的形象</span></button></div>
+    <p class="gesture-help">左键平移 · 右键旋转 · 滚轮靠近 · WASD 前进 <span>触屏：单指平移，双指缩放 / 旋转</span></p>
+    <div class="zoom-tools" aria-label="地图缩放"><button id="zoom-in" disabled aria-label="放大地图">＋</button><output id="zoom-level">100%</output><button id="zoom-out" disabled aria-label="缩小地图">−</button></div>
+    <section id="place-panel" class="glass place-panel" hidden aria-labelledby="place-heading">
+      <div class="panel-heading"><h2 id="place-heading">发现春熙路</h2><button id="close-places" aria-label="关闭地点列表">×</button></div>
+      <label class="search-label">搜索地点<input id="search" type="search" placeholder="搜索 IFS、步行街、地铁…" autocomplete="off"></label>
+      <p id="place-count" class="muted"></p><div id="place-list"></div>
+    </section>
+    <section id="selection" class="glass selection" hidden aria-labelledby="selection-name">
+      <div class="panel-heading"><p id="selection-category" class="eyebrow"></p><button id="close-selection" aria-label="关闭地点信息">×</button></div>
+      <h2 id="selection-name"></h2><p id="selection-coordinate" class="muted"></p>
+      <dl id="building-facts" class="building-facts"></dl><p id="building-note" class="building-note"></p>
+      <a id="compare-location" class="source-link" target="_blank" rel="noopener noreferrer" hidden>查看来源 ↗</a>
+      <div class="selection-actions"><button id="visit" class="primary">点亮这个地标</button><button id="merchant-checkin" hidden>商家打卡 · 试玩领交子</button><button id="move-avatar">移动模拟人物到这里</button><button id="resume-route" hidden>继续探索巡航 →</button></div>
+    </section>
+    <section id="route-panel" class="glass route-panel" hidden aria-label="探索路线预览">
+      <p class="eyebrow">沿真实步行街探索</p><h2 id="route-name"></h2><p id="route-distance" class="muted"></p>
+      <label id="route-run-label" hidden>板块内步行段<select id="route-run"></select></label>
+      <button id="play-route" class="primary" disabled>开始模拟漫游</button>
+      <label class="discovery-toggle"><input id="discovery-stops" type="checkbox" checked>发现未点亮地点时停靠</label>
+      <p id="discovery-hint" class="route-note"></p><button id="next-discovery">✦ 下一处未探索</button>
+      <p id="route-scope" class="route-note">模拟人物沿缓存道路移动，不代表实时导航；点亮为本地探索记录。</p>
+    </section>
+    <div id="loading" class="loading" role="status"><div><span class="loading-emblem">交</span><h2>正在构建春熙路</h2><p id="loading-detail">读取真实街道与建筑轮廓…</p></div></div>
+    <p id="status" class="status" role="status" aria-live="polite">正在读取本地场景</p>
+  </main>
+  <footer class="bottom-bar">
+    <button id="progress" class="glass progress-card" aria-label="查看已探索地点"><span class="progress-medal">交</span><span class="progress-copy"><span>街区探索 <b id="progress-percent">0%</b></span><span class="progress-track"><i id="progress-fill"></i></span><small id="progress-count">尚未点亮地标</small></span><span>›</span></button>
+    <div id="map-category-dock" class="map-action-dock" data-collapsed="false">
+      <button id="toggle-map-categories" type="button" class="hud-fold category-fold" aria-expanded="true" aria-controls="filters" aria-label="收起地点分类" title="收起地点分类"><span id="categories-fold-label">发现地点</span><svg class="fold-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>
+      <nav id="filters" class="filters" aria-label="地点分类">
+        <button data-category="all" class="active" aria-pressed="true" aria-expanded="false" aria-controls="place-panel"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6 6-2Z"/></svg></span>全部</button>
+        <button data-category="food" aria-pressed="false" aria-expanded="false" aria-controls="place-panel"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18m10 0v-7h4V3c-4 1-4 6-4 11"/></svg></span>美食</button>
+        <button data-category="shopping" aria-pressed="false" aria-expanded="false" aria-controls="place-panel"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14l2 14H3L5 7Z"/><path d="M8 9V6a4 4 0 0 1 8 0v3"/></svg></span>购物</button>
+        <button data-category="landmark" aria-pressed="false" aria-expanded="false" aria-controls="place-panel"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 9-5 9 5H3Zm0 13h18M5 11v7m7-7v7m7-7v7M3 18h18"/></svg></span>地标</button>
+        <button data-category="metro" aria-pressed="false" aria-expanded="false" aria-controls="place-panel"><span class="hud-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="15" rx="4"/><path d="M5 11h14M9 18l-3 3m9-3 3 3M8 7h8m-7 8h.01M15 15h.01"/></svg></span>地铁</button>
+      </nav>
+    </div>
+  </footer>
+  <p class="attribution">© OpenStreetMap contributors · 地点：百度地图 · 地理快照 / 装饰与建筑外观为美术表现</p>
+  <dialog id="jiaozi-panel" aria-labelledby="jiaozi-title">
+    <header class="jiaozi-panel-bar"><div><strong id="jiaozi-title">数字交子</strong><small>收藏风景 · 留下旅程</small></div><button id="close-jiaozi" aria-label="关闭交子，返回地图">返回地图 <span aria-hidden="true">×</span></button></header>
+    <p id="jiaozi-load-status" role="status">正在打开你的本地交子档案…</p>
+    <div id="jiaozi-frame-container"></div>
+  </dialog>
+  <noscript>需要启用 JavaScript 才能拖动地图和点击地点。</noscript>
+  <script type="module" src="./game-map.mjs"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+{
+  "desc": "本地测试页面，不收录",
+  "rules": [{"action": "disallow", "page": "*"}]
+}

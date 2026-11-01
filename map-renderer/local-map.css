@@ -1,0 +1,114 @@
+* { box-sizing: border-box; }
+:root { color-scheme: dark; --gold: #f7d592; --ink: #e8eee8; --muted: #9eb4c3; --line: #506777; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { background: #0c1d31; color: var(--ink); font: 14px/1.5 "Microsoft YaHei", system-ui, sans-serif; }
+button, input { font: inherit; }
+button { color: inherit; cursor: pointer; border: 1px solid #586c7c; border-radius: 12px; background: #1b3548; padding: 10px 15px; touch-action: manipulation; }
+button:hover { border-color: var(--gold); background: #304b5b; }
+button:focus-visible, input:focus-visible, #viewport:focus-visible { outline: 2px solid #ffda8c; outline-offset: 3px; }
+button:disabled { opacity: .45; cursor: default; }
+[hidden] { display: none !important; }
+h1, h2, p { margin: 0; }
+h2 { font-size: 19px; }
+.topbar { position: absolute; inset: 0 0 auto; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 26px 36px; pointer-events: none; background: linear-gradient(#0c1d31ed, #0c1d3100); }
+.chapter { display: flex; gap: 16px; align-items: center; }
+.chapter-number { display: grid; place-items: center; width: 49px; height: 56px; border: 1px solid #a78e5c; border-radius: 20px 20px 10px 10px; color: var(--gold); font: italic 26px Georgia, serif; box-shadow: inset 0 0 16px #e3bc5d14; }
+.eyebrow { font-size: 11px; letter-spacing: 2px; color: #aac5cf; }
+h1 { color: #ffe3ac; font-size: 30px; letter-spacing: 3px; text-shadow: 0 2px 16px #f2b45330; }
+h1 span { font-size: 17px; font-weight: 500; letter-spacing: 1px; margin-left: 13px; color: #eff0e0; }
+.chapter-meta { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border: 1px solid #466073; border-radius: 30px; font-size: 12px; background: #152b40d9; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #e9bc70; box-shadow: 0 0 10px #ffd690; }
+.divider { color: #59778b; }
+#stage { position: absolute; inset: 85px 0 134px; overflow: hidden; }
+#viewport { position: absolute; inset: 0; touch-action: none; cursor: grab; outline-offset: -3px; }
+#viewport.dragging { cursor: grabbing; }
+#world { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; pointer-events: none; }
+#map-image { display: block; pointer-events: none; user-select: none; }
+#route-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#route-glow { stroke: #ffb345; stroke-width: 22; opacity: .45; filter: blur(9px); fill: none; }
+#route-line { stroke: #ffe3a0; stroke-width: 5; stroke-dasharray: 11 8; stroke-linecap: round; stroke-linejoin: round; fill: none; animation: flow 4s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -76; } }
+#markers { position: absolute; inset: 0; pointer-events: none; }
+.hotspot { position: absolute; pointer-events: auto; transform: translate(-50%, -100%); white-space: nowrap; padding: 7px 11px 7px 7px; background: #fff1db; color: #263747; border: 1px solid #e3b97b; border-radius: 24px; box-shadow: 0 3px 13px #060d1680; font-weight: 700; font-size: 12px; }
+.hotspot::after { content: ''; position: absolute; width: 6px; height: 6px; background: #f9d88d; border-radius: 50%; left: calc(50% - 3px); bottom: -9px; box-shadow: 0 0 0 3px #ffd06b28, 0 0 12px #ffd467; }
+.hotspot:hover, .hotspot.selected { background: #fff9ee; border-color: #fff0aa; box-shadow: 0 0 0 3px #ffd88136, 0 4px 20px #0a1629; }
+.hotspot.visited { border-color: #83c7af; }
+.hotspot .poi-icon { display: inline-grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; margin-right: 6px; color: #fff7e7; background: var(--poi-color, #c58b4a); font-size: 16px; }
+#avatar { position: absolute; width: 34px; height: 68px; transform: translate(-50%, -100%); pointer-events: none; z-index: 4; }
+.avatar-body { display: block; position: absolute; bottom: 11px; left: 4px; width: 26px; height: 28px; background: #f4d4a2; color: #473d35; border: 3px solid #fff4ce; border-radius: 50% 50% 9px 9px; box-shadow: 0 0 0 3px #334c69, 0 5px 12px #031529; text-align: center; line-height: 20px; }
+.avatar-body::before { content: ''; display: block; width: 25px; height: 13px; position: absolute; left: -2px; top: -7px; border-radius: 12px 12px 3px 3px; background: #a17b48; border: 2px solid #ead39d; }
+.avatar-ring { position: absolute; bottom: 0; left: -4px; width: 42px; height: 16px; border: 2px solid #9fe6fc; background: #52c9f244; border-radius: 50%; box-shadow: 0 0 17px #67d9ff; }
+.avatar-bubble { position: absolute; bottom: 57px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 10px; color: #cbf1ff; background: #153d53ed; border: 1px solid #70bbd2; padding: 3px 7px; border-radius: 9px; }
+.scene-caption { position: absolute; left: 36px; top: 18px; display: flex; gap: 10px; align-items: center; pointer-events: none; }
+.scene-caption strong { font-size: 13px; color: #d5d9ca; font-weight: 400; letter-spacing: 2px; }
+.scene-caption small { display: block; color: #7f9aac; font-size: 10px; margin-top: 2px; }
+.gold-star { color: #f2cb8b; font-size: 28px; }
+.map-tools { position: absolute; top: 27px; right: 28px; display: grid; gap: 9px; z-index: 12; }
+.map-tools button { width: 70px; padding: 10px 3px; background: #edf0e5f5; color: #22394b; border: 1px solid #a2b9bd; font-size: 11px; box-shadow: 0 4px 20px #0411225c; }
+.map-tools button span { display: block; font-size: 24px; line-height: 1.3; font-weight: 600; }
+.map-tools button[aria-pressed=true], .map-tools button[aria-expanded=true] { background: #f9dca0; border-color: #e6b568; }
+.zoom-tools { position: absolute; right: 28px; bottom: 45px; z-index: 12; display: grid; justify-items: center; gap: 7px; }
+.zoom-tools button { width: 45px; height: 42px; padding: 0; font-size: 22px; background: #172d42f2; }
+.zoom-tools output { font-size: 10px; color: #abc3cf; }
+.glass { border: 1px solid #5a788e; background: #142c40f2; box-shadow: 0 7px 35px #030e1d66, inset 0 0 24px #3a718412; backdrop-filter: blur(12px); border-radius: 20px; }
+.place-panel { position: absolute; top: 20px; right: 112px; bottom: 35px; width: 300px; padding: 18px; z-index: 15; display: flex; flex-direction: column; }
+.panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.panel-heading button { padding: 0; width: 28px; height: 28px; border: 0; background: transparent; font-size: 22px; }
+.search-label { display: block; color: #a6bfcd; font-size: 11px; margin-top: 15px; }
+input { width: 100%; color: #e7efed; background: #0d2134; border: 1px solid #456275; border-radius: 9px; padding: 10px; margin-top: 5px; }
+.muted { color: #aac0ce; font-size: 11px; line-height: 1.8; }
+#place-count { margin: 12px 0 7px; }
+#place-list { overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 7px; }
+.place-row { text-align: left; border-color: #3e596a; background: #1d3748; padding: 10px; font-size: 12px; border-radius: 9px; }
+.place-row small { display: block; color: #94aebe; font-size: 10px; margin-top: 3px; }
+.selection { position: absolute; left: 30px; bottom: 40px; width: 340px; max-width: calc(100% - 120px); padding: 17px 20px; z-index: 14; }
+.selection h2 { margin: 5px 0 8px; color: #ffe5af; }
+.selection-actions { display: grid; gap: 8px; margin-top: 13px; }
+.selection-actions button { font-size: 12px; padding: 9px; }
+button.primary { color: #243445; background: linear-gradient(120deg, #ffe3a3, #dfad69); border-color: #f9d99a; font-weight: 700; }
+.route-panel { position: absolute; left: 30px; top: 88px; width: 300px; padding: 18px 20px; z-index: 13; }
+.route-panel h2 { margin: 7px 0; color: #ffe3a6; font-size: 17px; }
+.route-panel button { width: 100%; margin-top: 13px; font-size: 12px; }
+.route-note { font-size: 10px; color: #90a9b9; margin-top: 10px; }
+.bottom-bar { position: absolute; bottom: 29px; left: 32px; right: 32px; z-index: 20; display: flex; align-items: stretch; justify-content: space-between; gap: 24px; pointer-events: none; }
+.bottom-bar button, .bottom-bar nav { pointer-events: auto; }
+.progress-card { display: flex; align-items: center; gap: 15px; width: 285px; text-align: left; padding: 15px 17px; }
+.progress-medal { display: grid; place-items: center; width: 51px; height: 51px; color: #ffe1a3; font-size: 23px; font-family: serif; border: 2px solid #e9c38b; border-radius: 50%; box-shadow: 0 0 15px #75c9e344, inset 0 0 10px #6190ad55; flex-shrink: 0; }
+.progress-copy { flex: 1; }
+.progress-copy > span:first-child { display: block; color: #d6e0de; font-size: 11px; }
+.progress-copy b { color: #f7d084; font-size: 18px; margin-left: 6px; }
+.progress-track { display: block; height: 10px; padding: 2px; background: #0b2133; border: 1px solid #53697b; border-radius: 12px; margin: 5px 0; }
+.progress-track i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, #d7a254, #ffe69c); border-radius: inherit; transition: width .4s; }
+.progress-copy small { color: #aac2cb; font-size: 10px; }
+.filters { display: flex; justify-content: space-around; align-items: center; padding: 8px 17px; gap: 15px; }
+.filters button { padding: 0; border: 0; background: transparent; color: #b1c8d2; min-width: 48px; font-size: 10px; }
+.filters button > span { display: grid; place-items: center; border-radius: 50%; width: 41px; height: 41px; font-size: 25px; color: #f0faf7; background: #315d79; border: 1px solid #719bb7; box-shadow: inset 0 0 9px #9be9ff30; margin: 0 auto 3px; }
+.filters button:nth-child(2) > span { background: #bc7836; border-color: #ebbc76; }
+.filters button:nth-child(3) > span { background: #ae5578; border-color: #efa4be; }
+.filters button:nth-child(4) > span { background: #387c60; border-color: #8fc79b; }
+.filters button:nth-child(5) > span { background: #4565af; border-color: #95b8fa; }
+.filters .active { color: #ffe3a3; }
+.filters .active > span { box-shadow: 0 0 0 3px #e5c77b44, 0 0 18px #e0b96c55; border-color: #ffe8aa; }
+.attribution { position: absolute; bottom: 6px; left: 20px; right: 20px; text-align: center; color: #8096a8; font-size: 9px; z-index: 20; pointer-events: none; }
+.status { position: absolute; bottom: 9px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 170px); text-align: center; color: #b8ced5; background: #0d2337de; border-radius: 20px; padding: 5px 14px; font-size: 11px; pointer-events: none; z-index: 16; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; z-index: 18; background: #0c1d31ef; color: #f5d598; padding: 32px; text-align: center; }
+@media (max-width: 700px) {
+  .topbar { padding: 17px 17px; }
+  .chapter { gap: 10px; }.chapter-number { width: 34px; height: 46px; font-size: 21px; }
+  h1 { font-size: 24px; } h1 span { display: block; font-size: 11px; margin: 0; letter-spacing: 2px; }
+  .eyebrow { font-size: 9px; letter-spacing: 1px; }.chapter-meta { display: none; }
+  #stage { top: 86px; bottom: 173px; }
+  .scene-caption { left: 18px; top: 5px; }.scene-caption strong { font-size: 11px; }.scene-caption small { display: none; }
+  .map-tools { top: 45px; right: 12px; gap: 7px; }.map-tools button { width: 53px; font-size: 10px; padding: 6px 1px; }.map-tools button span { font-size: 22px; }
+  .zoom-tools { right: 15px; bottom: 40px; }.zoom-tools button { width: 35px; height: 34px; }
+  .place-panel { right: 76px; left: 12px; width: auto; top: 39px; bottom: 36px; padding: 14px; }
+  .selection { left: 12px; bottom: 37px; padding: 12px 14px; max-width: calc(100% - 85px); }.selection h2 { font-size: 16px; }.selection-actions { gap: 6px; margin-top: 9px; }
+  .route-panel { top: 40px; left: 12px; width: calc(100% - 91px); padding: 13px 15px; }
+  .bottom-bar { bottom: 29px; left: 12px; right: 12px; flex-direction: column; gap: 8px; }
+  .progress-card { padding: 8px 13px; width: 100%; border-radius: 14px; gap: 12px; }.progress-medal { width: 34px; height: 34px; font-size: 18px; }
+  .progress-copy { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; }.progress-copy small { grid-column: 2; }.progress-copy > span:first-child { grid-row: span 2; }.progress-copy b { font-size: 17px; }
+  .progress-track { margin: 0; }.filters { padding: 6px 10px; border-radius: 15px; gap: 5px; }.filters button > span { width: 32px; height: 32px; font-size: 21px; }
+  .hotspot { font-size: 10px; padding: 5px 8px 5px 5px; }.hotspot .poi-icon { width: 21px; height: 21px; font-size: 13px; margin-right: 4px; }
+  .status { font-size: 10px; max-width: calc(100% - 85px); left: 12px; transform: none; text-align: left; padding: 3px 8px; }.attribution { font-size: 8px; left: 9px; right: 9px; }
+}
+@media (prefers-reduced-motion: reduce) { #route-line { animation: none; }.progress-track i { transition: none; } }

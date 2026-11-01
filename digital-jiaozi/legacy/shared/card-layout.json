@@ -1,0 +1,15 @@
+{
+  "version": "portrait-v1",
+  "aspectRatio": [2, 3],
+  "cardWidthRpx": 686,
+  "columns": [0.09, 0.55],
+  "rows": [0.14, 0.385, 0.63],
+  "cellWidth": 0.36,
+  "cellHeight": 0.23,
+  "nameFontRpx": 24,
+  "nameLineHeightRpx": 32,
+  "imageNameGapRpx": 8,
+  "cellPaddingTopRpx": 4,
+  "cellPaddingBottomRpx": 4,
+  "safeArea": {"left": 0.07, "top": 0.135, "right": 0.93, "bottom": 0.87}
+}

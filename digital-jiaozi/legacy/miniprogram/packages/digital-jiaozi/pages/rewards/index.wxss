@@ -1,0 +1,2 @@
+@import "../../styles/common.wxss";
+.dj-goods{display:flex;flex-wrap:wrap;gap:20rpx;align-items:stretch}.dj-good{width:calc(50% - 10rpx);box-sizing:border-box;padding:18rpx;display:flex;flex-direction:column}.dj-product{height:240rpx}.dj-good .dj-subtitle{font-size:28rpx}.dj-good button{margin-top:auto;width:100%}

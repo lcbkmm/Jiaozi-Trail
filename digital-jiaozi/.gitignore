@@ -1,0 +1,34 @@
+# 本模块的依赖与构建产物
+node_modules/
+dist/
+dist-module/
+test-results/
+playwright-report/
+build/
+coverage/
+.venv/
+__pycache__/
+*.py[cod]
+
+# 本地配置与凭据
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+
+# 本地编辑器与系统文件
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+
+# Module-owned runtime data, private photos, previews and generated evidence
+var/
+.env.demo
+legacy/server/fonts/*.otf
+legacy/server/fonts/*.ttf
+legacy/miniprogram/project.private.config.json
+*.sqlite*

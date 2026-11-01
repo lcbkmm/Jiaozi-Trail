@@ -1,0 +1,9 @@
+.idea/
+node_modules/
+project.private.config.json
+miniprogram/miniprogram_npm/
+.artifacts/
+map-renderer/.env
+map-renderer/output/
+__pycache__/
+

@@ -1,0 +1,10 @@
+{
+  "description":"数字交子独立开发壳，集成时只迁入分包",
+  "miniprogramRoot":"./",
+  "compileType":"miniprogram",
+  "appid":"touristappid",
+  "projectname":"digital-jiaozi",
+  "libVersion":"3.7.12",
+  "setting":{"es6":true,"enhance":true,"postcss":true,"minified":true,"urlCheck":true},
+  "packOptions":{"ignore":[]}
+}

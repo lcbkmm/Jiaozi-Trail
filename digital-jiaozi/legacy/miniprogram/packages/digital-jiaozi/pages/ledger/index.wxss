@@ -1,0 +1,2 @@
+@import "../../styles/common.wxss";
+.dj-note{word-break:break-all}.dj-row>button{font-size:24rpx;padding:10rpx;min-width:0}

@@ -1,0 +1,19 @@
+{
+  "coordinateSystem": "BD09LL",
+  "description": "Simplified artwork at a verified Baidu POI; not an architectural survey or building footprint.",
+  "landmarks": [
+    {
+      "id": "chengdu-ifs",
+      "name": "成都IFS国际金融中心",
+      "coordinate": [104.088067, 30.66066],
+      "source": "Baidu Place API snapshot",
+      "asset": "./assets/landmarks/ifs-demo.svg",
+      "size": [160, 190],
+      "anchor": [80, 174],
+      "baseZoom": 18,
+      "minZoom": 16,
+      "maxZoom": 20.5,
+      "illustrative": true
+    }
+  ]
+}

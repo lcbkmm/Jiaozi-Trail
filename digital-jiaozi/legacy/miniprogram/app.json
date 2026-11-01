@@ -1,0 +1,8 @@
+{
+  "pages": ["pages/dev/index"],
+  "subPackages": [{"root":"packages/digital-jiaozi","name":"digital-jiaozi","pages":["pages/home/index","pages/photo/index","pages/tasks/index","pages/ledger/index","pages/rewards/index","pages/orders/index","pages/order/index","pages/staff/index"]}],
+  "window": {"navigationBarTitleText":"数字交子 · 独立调试","navigationBarBackgroundColor":"#F8F4E9","navigationBarTextStyle":"black","backgroundColor":"#F8F4E9"},
+  "style":"v2",
+  "sitemapLocation":"sitemap.json",
+  "lazyCodeLoading":"requiredComponents"
+}

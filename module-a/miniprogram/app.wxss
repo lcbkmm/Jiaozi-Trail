@@ -1,0 +1,1 @@
+page{background:#f5f3ee;color:#233b31;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:28rpx}view,text,input,button{box-sizing:border-box}button::after{border:0}button{margin:0}button[disabled]{opacity:.55}button{font-size:26rpx}.hidden{display:none}

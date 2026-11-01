@@ -1,0 +1,8 @@
+# Same module-a versions; fixed Git commit via archive avoids Git clone failures.
+fastapi==0.162.0
+uvicorn==0.54.0
+httpx==0.28.1
+pydantic==2.14.2
+pytest==9.2.0
+openai==3.41.0
+llm2jev @ https://codeload.github.com/Yinsongxu/LLM2Jev/zip/93d4fcdcc81e0732026a65195eca3b45333af451

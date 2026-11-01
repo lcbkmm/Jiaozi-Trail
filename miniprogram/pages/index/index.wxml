@@ -1,0 +1,58 @@
+<view class="page-shell">
+  <block wx:if="{{activeTab === 'explore'}}">
+    <view class="location-row">
+      <view class="location"><view class="location-dot"></view><text>成都 · 春熙路</text></view>
+      <text class="edition">一城风物，慢慢寻</text>
+    </view>
+
+    <view class="hero">
+      <text class="eyebrow">JIAOZI TRAIL / 城市漫游计划</text>
+      <view class="hero-title">把好时光，<text class="title-second">逛出来。</text></view>
+      <text class="hero-description">循交子之迹，遇见下一站小惊喜。</text>
+      <view class="hero-seal">成都<text>寻迹</text></view>
+    </view>
+
+    <view class="ticket-banner">
+      <view class="ticket-copy"><text class="ticket-kicker">每一站，都是一份收获</text><text class="ticket-title">逛一座城 · 集一枚交子</text><text class="ticket-caption">探索三种品类，点亮你的联动纪念</text></view>
+      <view class="paper-ticket"><text class="ticket-top">成都漫游</text><text class="ticket-character">交</text><text class="ticket-bottom">JIAOZI · 001</text></view>
+      <view class="ticket-punch punch-top"></view><view class="ticket-punch punch-bottom"></view>
+    </view>
+
+    <view class="section-heading"><view><text class="section-title">今天，想怎么逛？</text><text class="section-subtitle">留一点随心，其他交给路线</text></view><text class="section-number">01 / PLAN</text></view>
+    <view class="planner-card">
+      <view class="input-wrap"><text class="input-star">✦</text><textarea id="wish-input" class="wish-input" value="{{wish}}" bindinput="updateWish" maxlength="120" placeholder="想喝咖啡、逛美妆，再带走一件成都好物…" placeholder-class="wish-placeholder" auto-height cursor-spacing="24" /></view>
+      <text class="field-label">跟着兴趣走</text>
+      <view class="chip-row"><button wx:for="{{interests}}" wx:key="name" class="interest-chip {{item.selected ? 'selected' : ''}}" data-name="{{item.name}}" bindtap="toggleInterest" aria-label="{{item.name}}"><text class="chip-sign">{{item.selected ? '✓' : '+'}}</text>{{item.name}}</button></view>
+      <view class="option-line"><text class="option-label">人均预算</text><view class="option-group"><button wx:for="{{budgets}}" wx:key="*this" class="option {{budget === item ? 'active' : ''}}" data-value="{{item}}" bindtap="selectBudget">¥{{item}}</button></view></view>
+      <view class="option-line last-option"><text class="option-label">可用时间</text><view class="option-group"><button wx:for="{{durations}}" wx:key="value" class="option {{duration === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="selectDuration">{{item.label}}</button></view></view>
+      <button id="generate-route" class="primary-button" bindtap="generateRoute"><text>生成我的逛吃路线</text><text class="button-arrow">↗</text></button>
+      <text class="planner-note">本地规则规划 · 无需登录即可体验</text>
+    </view>
+
+    <view wx:if="{{route}}" id="route-section" class="route-section">
+      <view class="section-heading"><view><text class="section-title">你的午后寻迹路线</text><text class="section-subtitle">{{route.stops.length}} 站 · 约 {{route.minutes}} 分钟 · 人均约 ¥{{route.cost}}</text></view><text class="route-tag">已安排</text></view>
+      <view class="route-card">
+        <view class="route-stop" wx:for="{{route.stops}}" wx:key="id">
+          <view class="stop-rail"><text class="stop-number {{item.checked ? 'stamped' : ''}}">{{item.checked ? '✓' : index + 1}}</text><view wx:if="{{index < route.stops.length - 1}}" class="rail-line"></view></view>
+          <view class="stop-content"><view class="stop-meta"><text>{{item.time}} · 步行 {{item.walk}} 分钟</text><text>{{item.category}}</text></view><text class="stop-name">{{item.name}}</text><text class="stop-perk">{{item.perk}} · 预计排队 {{item.queue}} 分钟</text><button id="checkin-{{item.id}}" class="checkin-button {{item.checked ? 'checked' : ''}}" data-id="{{item.id}}" bindtap="checkIn" disabled="{{item.checked}}">{{item.checked ? '足迹已收集 ✓' : '模拟到店打卡 +'}}</button></view>
+        </view>
+        <text class="route-disclaimer">13:00 出发的示例行程；时间包含步行、排队与停留。</text>
+      </view>
+    </view>
+
+    <view class="section-heading recommendations-heading"><view><text class="section-title">在路上，遇见喜欢</text><text class="section-subtitle">三种灵感，开启今天的漫游</text></view><text class="section-number">02 / FINDS</text></view>
+    <view class="finds-grid"><button wx:for="{{recommendations}}" wx:key="id" class="find-card" data-id="{{item.id}}" bindtap="showDetails"><view class="find-art {{item.tone}}"><view class="art-orbit"></view><text class="art-symbol">{{item.symbol}}</text><text class="art-caption">{{item.label}}</text><text class="art-corner">↗</text></view><text class="find-name">{{item.name}}</text><text class="find-category">{{item.category}}</text></button></view>
+    <view class="footer-note"><text class="footer-flower">✳</text><text>给城市一点时间，也给自己一点惊喜</text></view>
+  </block>
+
+  <block wx:else>
+    <view class="wallet-heading"><text class="eyebrow">MY CITY MEMORIES</text><text class="wallet-title">我的交子</text><text class="hero-description">走过的每一站，都成为自己的收藏。</text></view>
+    <view class="collectible-card"><text class="collectible-top">成都 · 城市漫游纪念</text><view class="collectible-ring"><text>交</text></view><text id="wallet-level" class="collectible-level">{{wallet.level}}</text><text class="collectible-bottom">循交子之迹 · 藏一城风物</text></view>
+    <view class="progress-card"><view class="progress-header"><text class="section-title">足迹慢慢，交子成长</text><text class="progress-count">{{wallet.categoryCount}} / 3 类</text></view><view class="progress-track"><view class="progress-fill" style="width: {{wallet.progress}}%;"></view></view><text id="wallet-message" class="progress-message">{{wallet.message}}</text><view class="wallet-stats"><view><text class="stat-number">{{wallet.count}}</text><text class="stat-label">已探索点位</text></view><view><text class="stat-number">{{wallet.categoryCount}}</text><text class="stat-label">已探索品类</text></view><view><text class="stat-number">{{wallet.progress}}%</text><text class="stat-label">联动进度</text></view></view></view>
+    <view class="wallet-help"><text class="help-title">一枚交子，怎样点亮？</text><text>生成路线后，模拟完成到店打卡。探索美妆、咖啡与城市好物三个品类，就能点亮联动交子。</text></view>
+    <button class="primary-button wallet-explore" data-tab="explore" bindtap="changeTab">去寻找下一站 <text>↗</text></button>
+  </block>
+
+  <view class="demo-note">页面体验版 · 门店、权益和排队均为模拟数据</view>
+</view>
+<view class="bottom-nav"><button id="nav-explore" class="nav-item {{activeTab === 'explore' ? 'nav-active' : ''}}" data-tab="explore" bindtap="changeTab"><view class="explore-icon"><view></view></view><text>今日寻迹</text></button><view class="nav-divider"></view><button id="nav-wallet" class="nav-item {{activeTab === 'wallet' ? 'nav-active' : ''}}" data-tab="wallet" bindtap="changeTab"><view class="wallet-icon">交</view><text>我的交子</text><view wx:if="{{wallet.count > 0}}" class="nav-badge">{{wallet.count}}</view></button></view>

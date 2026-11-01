@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>春熙路 · 街区探索</title>
+  <link rel="stylesheet" href="./local-map.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="chapter"><span class="chapter-number">01</span><div><p class="eyebrow">交子漫游 / 成都篇</p><h1>春熙路<span>街区探索地图</span></h1></div></div>
+    <div class="chapter-meta"><span class="live-dot"></span> 成都 · 春熙路 <span class="divider">/</span> 夜游板块</div>
+  </header>
+  <main id="stage" aria-label="春熙路游戏地图板块">
+    <div id="viewport" tabindex="0" aria-label="地图，可拖动或用方向键移动，加减键缩放，Home 查看全图">
+      <div id="world">
+        <img id="map-image" alt="按春熙路真实道路和建筑轮廓渲染的夜景游戏地图" draggable="false">
+        <svg id="route-layer" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" hidden><path id="route-glow"/><path id="route-line"/></svg>
+      </div>
+      <div id="markers"></div>
+      <div id="avatar" hidden><span class="avatar-bubble">探索者 · 模拟</span><span class="avatar-body">●</span><span class="avatar-ring"></span></div>
+    </div>
+    <div class="scene-caption"><span class="gold-star">✦</span><div><strong>一城烟火，等你发现</strong><small>真实街区 · 卡通夜景 · 点击地标探索</small></div></div>
+    <nav class="map-tools" aria-label="地图工具">
+      <button id="places" disabled aria-expanded="false" aria-controls="place-panel"><span>⌖</span>全部地点</button>
+      <button id="route" disabled aria-pressed="false"><span>⌁</span>探索路线</button>
+      <button id="test-position" disabled><span>♟</span>找到人物</button>
+      <button id="home" disabled><span>▱</span>查看全图</button>
+    </nav>
+    <div class="zoom-tools" aria-label="地图缩放"><button id="zoom-in" disabled aria-label="放大地图">＋</button><output id="zoom-level">100%</output><button id="zoom-out" disabled aria-label="缩小地图">−</button></div>
+    <section id="place-panel" class="glass place-panel" hidden aria-labelledby="place-heading">
+      <div class="panel-heading"><h2 id="place-heading">发现春熙路</h2><button id="close-places" aria-label="关闭地点列表">×</button></div>
+      <label class="search-label">搜索地点<input id="search" type="search" placeholder="搜索 IFS、步行街、地铁…" autocomplete="off"></label>
+      <p id="place-count" class="muted"></p><div id="place-list"></div>
+    </section>
+    <section id="selection" class="glass selection" hidden aria-labelledby="selection-name">
+      <div class="panel-heading"><p id="selection-category" class="eyebrow"></p><button id="close-selection" aria-label="关闭地点信息">×</button></div>
+      <h2 id="selection-name"></h2><p id="selection-coordinate" class="muted"></p>
+      <div class="selection-actions"><button id="visit" class="primary">点亮这个地标</button><button id="move-avatar">移动模拟人物到这里</button></div>
+    </section>
+    <section id="route-panel" class="glass route-panel" hidden aria-label="探索路线预览">
+      <p class="eyebrow">沿真实步行街探索</p><h2 id="route-name"></h2><p id="route-distance" class="muted"></p>
+      <button id="play-route" class="primary" disabled>开始模拟漫游</button><p class="route-note">模拟人物沿缓存道路移动，不代表实时导航。</p>
+    </section>
+    <div id="loading" class="loading" role="status">正在渲染春熙路板块…</div>
+    <p id="status" class="status" role="status" aria-live="polite">正在读取本地场景</p>
+  </main>
+  <footer class="bottom-bar">
+    <button id="progress" class="glass progress-card" aria-label="查看已探索地点"><span class="progress-medal">交</span><span class="progress-copy"><span>街区探索 <b id="progress-percent">0%</b></span><span class="progress-track"><i id="progress-fill"></i></span><small id="progress-count">尚未点亮地标</small></span><span>›</span></button>
+    <nav id="filters" class="glass filters" aria-label="地点分类">
+      <button data-category="all" class="active" aria-pressed="true"><span>⌖</span>全部</button>
+      <button data-category="food" aria-pressed="false"><span>♨</span>美食</button>
+      <button data-category="shopping" aria-pressed="false"><span>♧</span>购物</button>
+      <button data-category="landmark" aria-pressed="false"><span>♜</span>地标</button>
+      <button data-category="metro" aria-pressed="false"><span>▣</span>地铁</button>
+    </nav>
+  </footer>
+  <p class="attribution">© OpenStreetMap contributors · 地点：百度地图 · 地理快照 / 装饰与建筑外观为美术表现</p>
+  <noscript>需要启用 JavaScript 才能拖动地图和点击地点。</noscript>
+  <script type="module" src="./local-map.mjs"></script>
+</body>
+</html>

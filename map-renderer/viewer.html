@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>春熙路 · 离线地图预览</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; color: #dce7e9; background: #12202d; font: 14px system-ui, sans-serif; }
+  header { position: absolute; z-index: 2; top: 16px; left: 16px; padding: 12px 16px; background: #162733ed; border: 1px solid #486070; border-radius: 8px; max-width: calc(100% - 32px); }
+  header p { margin: 5px 0 0; color: #9fb6c0; }
+  button { background: #304c5a; border: 1px solid #587180; border-radius: 5px; color: inherit; padding: 5px 12px; cursor: pointer; }
+  #viewport { position: fixed; inset: 0; overflow: hidden; touch-action: none; cursor: grab; }
+  #viewport.dragging { cursor: grabbing; }
+  #world { position: absolute; transform-origin: 0 0; }
+  #map { display: block; pointer-events: none; user-select: none; }
+  .hotspot { position: absolute; transform: translate(-50%, -50%); width: 22px; height: 22px; border-radius: 50%; border: 2px solid #ffe6a2; background: #ffbc6655; padding: 0; }
+  .hotspot:hover, .hotspot:focus-visible { background: #ffd077; box-shadow: 0 0 14px #ffbf6c; }
+  #selection { position: absolute; z-index: 2; bottom: 18px; left: 50%; transform: translateX(-50%); max-width: 90%; padding: 10px 16px; background: #162733ee; border: 1px solid #486070; border-radius: 8px; }
+  #error { position: absolute; inset: 25% 10% auto; text-align: center; line-height: 1.9; }
+  code { color: #e0c79b; }
+</style>
+<div id="viewport"><div id="world"><img id="map" alt="春熙路离线预渲染地图"></div></div>
+<header><strong>春熙路 · 离线地图预览</strong><p>拖动查看，滚轮缩放，点击光点核对地标 <button id="reset">复位</button></p></header>
+<div id="selection" hidden></div>
+<div id="error" hidden></div>
+<script type="module">
+  const viewport = document.querySelector('#viewport');
+  const world = document.querySelector('#world');
+  const image = document.querySelector('#map');
+  const selection = document.querySelector('#selection');
+  const error = document.querySelector('#error');
+  let x = 0, y = 0, scale = 1, data, drag;
+  const apply = () => { world.style.transform = `translate(${x}px, ${y}px) scale(${scale})`; };
+  const fit = () => {
+    if (!data) return;
+    scale = Math.min(innerWidth / data.width, innerHeight / data.height);
+    x = (innerWidth - data.width * scale) / 2;
+    y = (innerHeight - data.height * scale) / 2;
+    apply();
+  };
+  document.querySelector('#reset').addEventListener('click', fit);
+  window.addEventListener('resize', fit);
+  viewport.addEventListener('pointerdown', event => {
+    if (event.target.closest('button')) return;
+    drag = { id: event.pointerId, startX: event.clientX, startY: event.clientY, x, y };
+    viewport.setPointerCapture(event.pointerId);
+    viewport.classList.add('dragging');
+  });
+  viewport.addEventListener('pointermove', event => {
+    if (!drag || drag.id !== event.pointerId) return;
+    x = drag.x + event.clientX - drag.startX; y = drag.y + event.clientY - drag.startY; apply();
+  });
+  const stop = () => { drag = undefined; viewport.classList.remove('dragging'); };
+  viewport.addEventListener('pointerup', stop); viewport.addEventListener('pointercancel', stop);
+  viewport.addEventListener('wheel', event => {
+    if (!data) return;
+    event.preventDefault();
+    const next = Math.min(4, Math.max(0.1, scale * Math.exp(-event.deltaY * 0.001)));
+    x = event.clientX - (event.clientX - x) * next / scale;
+    y = event.clientY - (event.clientY - y) * next / scale;
+    scale = next; apply();
+  }, { passive: false });
+  try {
+    const response = await fetch('./output/chunxi-map.hotspots.json');
+    if (!response.ok) throw new Error('尚未生成地图文件');
+    data = await response.json();
+    world.style.width = `${data.width}px`; world.style.height = `${data.height}px`;
+    image.width = data.width; image.height = data.height;
+    await new Promise((resolve, reject) => {
+      image.onload = resolve; image.onerror = () => reject(new Error('地图图片缺失'));
+      image.src = './output/chunxi-map.png';
+    });
+    for (const item of data.hotspots) {
+      const button = document.createElement('button');
+      button.className = 'hotspot'; button.title = item.name;
+      button.setAttribute('aria-label', item.name);
+      button.style.left = `${item.pixel[0]}px`; button.style.top = `${item.pixel[1]}px`;
+      button.addEventListener('click', () => {
+        selection.hidden = false;
+        selection.textContent = `${item.name} · ${item.source} · WGS84 ${item.coordinate.map(n => n.toFixed(6)).join(', ')}`;
+      });
+      world.append(button);
+    }
+    fit();
+  } catch (cause) {
+    error.hidden = false;
+    error.textContent = `${cause.message}。请先运行数据下载和离线渲染命令，再通过本地 HTTP 服务打开本页。`;
+  }
+</script>
+</html>

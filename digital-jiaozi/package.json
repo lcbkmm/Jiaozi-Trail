@@ -1,0 +1,28 @@
+{
+  "name": "digital-jiaozi",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "start": "vite --host 0.0.0.0",
+    "check": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:browser": "playwright test",
+    "build": "npm run check && vite build",
+    "build:module": "vite build --mode module",
+    "preview": "vite preview --host 0.0.0.0",
+    "assets:prepare": "node scripts/prepare-asset.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "^22.0.0",
+    "fake-indexeddb": "^6.2.4",
+    "sharp": "0.35.5",
+    "typescript": "7.0.2",
+    "vite": "8.3.5"
+  }
+}

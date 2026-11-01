@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>春熙路 · 卡通矢量地图</title>
+<link rel="stylesheet" href="./baidu-map.css">
+<main id="map" aria-label="春熙路百度地图"></main>
+<aside>
+  <strong>春熙路 · 地图渲染测试</strong>
+  <p id="status" role="status">正在加载百度地图…</p>
+  <div class="controls">
+    <button id="home" disabled>春熙路</button>
+    <button id="test-position" disabled>回到模拟位置</button>
+    <button id="style" disabled>查看原始配色</button>
+    <button id="locate" disabled>开启设备定位</button>
+    <button id="buildings" disabled>隐藏示例建筑</button>
+  </div>
+  <label><input type="checkbox" id="follow" checked> 定位后跟随人物</label>
+  <p id="position">模拟位置 · BD09 经度 104.086002，纬度 30.659204（春熙路测试点，非设备 GPS）。</p>
+  <p id="artwork">建筑素材加载中…</p>
+  <div id="map-help" hidden>
+    <p>底图未加载时，请确认 Key 的应用类型为“浏览器端”，已启用 JavaScript API，且来源白名单允许本机访问。账号认证通过不代表服务端 Key 可以加载网页地图。</p>
+    <a href="https://lbsyun.baidu.com/apiconsole/key" target="_blank" rel="noopener noreferrer">检查百度应用</a>
+    · <a href="./viewer.html">查看已生成的离线地图</a>
+  </div>
+  <details><summary>渲染状态</summary><pre id="diagnostics"></pre></details>
+</aside>
+<footer>底图与地点：百度地图 · 卡通样式只调整地图要素的视觉表现</footer>
+<script type="module" src="./baidu-map.mjs"></script>
+</html>

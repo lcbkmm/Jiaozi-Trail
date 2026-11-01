@@ -1,0 +1,17 @@
+{
+  "timezone": "Asia/Shanghai",
+  "rewards": { "initialize": 20, "daily": 10, "checkin.verified": 40, "purchase.verified": 60, "culture_task.completed": 60, "route.completed": 80 },
+  "dailyCaps": { "checkin.verified": 5, "purchase.verified": 3, "culture_task.completed": 2 },
+  "stages": [
+    { "id": "basic", "name": "基础交子", "threshold": 0, "color": "#B83A32" },
+    { "id": "advanced", "name": "进阶交子", "threshold": 100, "color": "#B83A32" },
+    { "id": "explorer", "name": "城市探索交子", "threshold": 300, "color": "#496C5C" },
+    { "id": "commemorative", "name": "纪念交子", "threshold": 600, "color": "#B7985A" }
+  ],
+  "photoDailyLimit": 3,
+  "photoSize": 512,
+  "maxUploadBytes": 10485760,
+  "maxImagePixels": 24000000,
+  "tokenTtlMs": 300000,
+  "orderTtlMs": 900000
+}

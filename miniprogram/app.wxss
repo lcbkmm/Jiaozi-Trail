@@ -1,0 +1,9 @@
+page {
+  background: #f7f5ef;
+  color: #263e34;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+}
+view, text, button, textarea { box-sizing: border-box; }
+button { margin: 0; padding: 0; line-height: 1.4; border-radius: 0; font-weight: inherit; font-size: inherit; }
+button::after { border: none; }

@@ -1,0 +1,9 @@
+{
+  "desc": "开发过渡版",
+  "rules": [
+    {
+      "action": "disallow",
+      "page": "*"
+    }
+  ]
+}

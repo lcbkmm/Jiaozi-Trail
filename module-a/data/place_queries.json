@@ -1,0 +1,82 @@
+[
+  {
+    "id": "chunxi_start",
+    "query": "春熙路地铁站",
+    "category": "start",
+    "keywords": [
+      "春熙路"
+    ],
+    "required_tags": [
+      "地铁站"
+    ]
+  },
+  {
+    "id": "ifs",
+    "query": "成都IFS",
+    "category": "landmark",
+    "keywords": [
+      "IFS"
+    ]
+  },
+  {
+    "id": "taikoo",
+    "query": "成都太古里",
+    "category": "landmark",
+    "keywords": [
+      "太古里"
+    ],
+    "preferred_name": "成都太古里"
+  },
+  {
+    "id": "daci",
+    "query": "古大圣慈寺",
+    "category": "culture",
+    "keywords": [
+      "古大圣慈寺"
+    ],
+    "required_tags": [
+      "寺庙"
+    ]
+  },
+  {
+    "id": "tea",
+    "query": "喜茶 成都太古里",
+    "category": "tea",
+    "keywords": [
+      "喜茶"
+    ]
+  },
+  {
+    "id": "coffee",
+    "query": "星巴克 太古里",
+    "category": "coffee",
+    "keywords": [
+      "星巴克"
+    ]
+  },
+  {
+    "id": "longchaoshou",
+    "query": "龙抄手 春熙路总店",
+    "category": "meal",
+    "keywords": [
+      "龙抄手"
+    ]
+  },
+  {
+    "id": "hotpot",
+    "query": "小龙坎 春熙路",
+    "category": "meal",
+    "keywords": [
+      "小龙坎"
+    ]
+  },
+  {
+    "id": "muji",
+    "query": "无印良品 群光广场",
+    "category": "lifestyle",
+    "keywords": [
+      "无印良品",
+      "MUJI"
+    ]
+  }
+]
