@@ -15,7 +15,7 @@ keep={'/health','/api/v1/demo/sessions','/api/v1/position','/api/v1/dynamic-stat
       '/api/v1/routes/{route_id}/accept','/api/v1/chat','/api/v1/intents/resolve',
       '/api/v1/tools','/api/v1/tools/call','/api/v1/model-status'}
 contract['paths']={path:value for path,value in contract['paths'].items() if path in keep}
-contract['info']['description']='规划侧只返回真实位置与路线；地图和商家目录由合作团队提供。响应动态字段与分工说明见 ROUTE_PLANNING_FRONTEND_API.md。'
+contract['info']['description']='规划侧只返回真实位置与路线；地图和商家目录由合作团队提供。响应动态字段与分工说明见 接口文档.md。'
 contract['servers']=[{'url':'http://127.0.0.1:8004','description':'本机开发入口，真机需改成可达服务地址'}]
 output=ROOT/'docs/ROUTE_PLANNING_OPENAPI.json'
 output.write_text(json.dumps(contract,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')

@@ -8,6 +8,10 @@
     ],
     "required_tags": [
       "地铁站"
+    ],
+    "aliases": [
+      "春熙路地铁站",
+      "地铁站"
     ]
   },
   {
@@ -16,6 +20,10 @@
     "category": "landmark",
     "keywords": [
       "IFS"
+    ],
+    "aliases": [
+      "IFS",
+      "熊猫"
     ]
   },
   {
@@ -25,7 +33,10 @@
     "keywords": [
       "太古里"
     ],
-    "preferred_name": "成都太古里"
+    "preferred_name": "成都太古里",
+    "aliases": [
+      "太古里"
+    ]
   },
   {
     "id": "daci",
@@ -36,6 +47,10 @@
     ],
     "required_tags": [
       "寺庙"
+    ],
+    "aliases": [
+      "大慈寺",
+      "古大圣慈寺"
     ]
   },
   {
@@ -43,6 +58,9 @@
     "query": "喜茶 成都太古里",
     "category": "tea",
     "keywords": [
+      "喜茶"
+    ],
+    "aliases": [
       "喜茶"
     ]
   },
@@ -52,6 +70,9 @@
     "category": "coffee",
     "keywords": [
       "星巴克"
+    ],
+    "aliases": [
+      "星巴克"
     ]
   },
   {
@@ -60,6 +81,9 @@
     "category": "meal",
     "keywords": [
       "龙抄手"
+    ],
+    "aliases": [
+      "龙抄手"
     ]
   },
   {
@@ -67,6 +91,9 @@
     "query": "小龙坎 春熙路",
     "category": "meal",
     "keywords": [
+      "小龙坎"
+    ],
+    "aliases": [
       "小龙坎"
     ]
   },
@@ -77,6 +104,22 @@
     "keywords": [
       "无印良品",
       "MUJI"
+    ],
+    "aliases": [
+      "无印良品",
+      "MUJI"
+    ]
+  },
+  {
+    "id": "hotpot_alt",
+    "query": "海底捞 春熙路",
+    "category": "meal",
+    "keywords": [
+      "海底捞"
+    ],
+    "preferred_name": "海底捞火锅(春熙路群光广场店)",
+    "aliases": [
+      "海底捞"
     ]
   }
 ]

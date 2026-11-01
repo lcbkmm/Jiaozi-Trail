@@ -31,8 +31,10 @@ def test_more_than_one_style_uses_one_graph_and_does_not_save_routes(api):
     assert len(calls)==1
     assert app.state.maps.calls==0
     assert client.get("/api/v1/routes").json()["data"]==[]
-    option=response.json()["data"]["options"][0]
-    assert client.post("/api/v1/routes",json=option["preferences"]).json()["data"]["stop_ids"]==option["stop_ids"]
+    for option in response.json()["data"]["options"]:
+        assert option["preferences"]["planning_style"]==option["option_id"]
+        saved=client.post("/api/v1/routes",json=option["preferences"]).json()["data"]
+        assert saved["stop_ids"]==option["stop_ids"]
 
 
 def test_tool_registry_uses_validated_whitelist(api):

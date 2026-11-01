@@ -210,8 +210,9 @@ def test_real_jev_library_consumes_exact_binary_backend():
     assert data["relative_probabilities"]["add_memory"]==pytest.approx(.5)
 
 
-def test_patch_rejects_unknown_tags_and_coerced_money():
-    with pytest.raises(ValidationError):PreferencePatch(interests=["invented"])
+def test_patch_accepts_data_defined_tags_but_rejects_invalid_syntax_and_coerced_money():
+    assert PreferencePatch(interests=["new_catalog_tag"]).interests==["new_catalog_tag"]
+    with pytest.raises(ValidationError):PreferencePatch(interests=["invalid tag!"])
     with pytest.raises(ValidationError):PreferencePatch(budget_per_person_fen="15000")
 
 

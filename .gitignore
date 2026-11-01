@@ -7,3 +7,4 @@ map-renderer/.env
 map-renderer/output/
 __pycache__/
 
+module-a/docs/

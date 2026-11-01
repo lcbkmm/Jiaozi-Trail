@@ -1,0 +1,223 @@
+[
+  {
+    "id": "catalog_defined_experience",
+    "text": "我想找个地方吃串串，其他先不用安排。",
+    "vocabulary": {
+      "chuan_chuan": "串串"
+    },
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "required_experiences": [
+        "chuan_chuan"
+      ],
+      "visit_mode": "focused"
+    },
+    "selected_place_id": null,
+    "expect_clarification": false
+  },
+  {
+    "id": "drink_alternative",
+    "text": "咖啡或者奶茶任选一家就行，不用两家都去。",
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "required_goals": [
+        {
+          "any_of": [
+            "coffee",
+            "tea"
+          ]
+        }
+      ]
+    },
+    "forbidden_required_experiences": [
+      "coffee",
+      "tea"
+    ],
+    "selected_place_id": null,
+    "expect_clarification": false
+  },
+  {
+    "id": "ordered_landmark_meal",
+    "text": "先逛IFS，再去吃火锅，顺序别反了。",
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "visit_sequence": [
+        {
+          "place_ids": [
+            "ifs"
+          ]
+        },
+        {
+          "any_of": [
+            "hotpot"
+          ]
+        }
+      ]
+    },
+    "exact_patch": {
+      "visit_sequence": [
+        {
+          "any_of": [],
+          "place_ids": [
+            "ifs"
+          ]
+        },
+        {
+          "any_of": [
+            "hotpot"
+          ],
+          "place_ids": []
+        }
+      ]
+    },
+    "selected_place_id": null,
+    "expect_clarification": false
+  },
+  {
+    "id": "ordered_experiences",
+    "text": "先喝咖啡，再逛文化景点，最后吃火锅。",
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "visit_sequence": [
+        {
+          "any_of": [
+            "coffee"
+          ]
+        },
+        {
+          "any_of": [
+            "culture"
+          ]
+        },
+        {
+          "any_of": [
+            "hotpot"
+          ]
+        }
+      ]
+    },
+    "selected_place_id": null,
+    "expect_clarification": false
+  },
+  {
+    "id": "multiple_drinks",
+    "text": "先喝咖啡，再买奶茶，两站我都要。",
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "category_limits": {
+        "drink": 2
+      },
+      "visit_sequence": [
+        {
+          "any_of": [
+            "coffee"
+          ]
+        },
+        {
+          "any_of": [
+            "tea"
+          ]
+        }
+      ]
+    },
+    "selected_place_id": null,
+    "expect_clarification": false
+  },
+  {
+    "id": "repeat_experience",
+    "text": "我想连续逛两家文化景点，每家都待一会儿。",
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "visit_sequence": [
+        {
+          "any_of": [
+            "culture"
+          ]
+        },
+        {
+          "any_of": [
+            "culture"
+          ]
+        }
+      ]
+    },
+    "selected_place_id": null,
+    "expect_clarification": false
+  },
+  {
+    "id": "unsupported_metadata",
+    "text": "一定要安排一家可以确认无花生交叉污染的火锅店。",
+    "expected_operations": [],
+    "expected_patch": {},
+    "selected_place_id": null,
+    "expect_clarification": true
+  },
+  {
+    "id": "unsupported_experience",
+    "text": "只想打保龄球，别给我安排吃饭逛街。",
+    "expected_operations": [],
+    "expected_patch": {},
+    "selected_place_id": null,
+    "expect_clarification": true
+  },
+  {
+    "id": "remaining_time_general",
+    "text": "还剩一个半小时，少走路，别排超过十分钟。",
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "max_duration_s": 5400,
+      "max_queue_s": 600,
+      "planning_style": "less_walking"
+    },
+    "expected_duration_scope": "remaining",
+    "selected_place_id": null,
+    "expect_clarification": false
+  },
+  {
+    "id": "cancel_previous_sequence",
+    "text": "不按刚才的顺序了，文化景点也不去了，只喝杯茶。",
+    "preferences_patch": {
+      "visit_sequence": [
+        {
+          "any_of": [
+            "culture"
+          ],
+          "place_ids": []
+        },
+        {
+          "any_of": [
+            "coffee"
+          ],
+          "place_ids": []
+        }
+      ]
+    },
+    "expected_operations": [
+      "update_preferences"
+    ],
+    "expected_patch": {
+      "required_experiences": [
+        "tea"
+      ]
+    },
+    "exact_patch": {
+      "visit_sequence": []
+    },
+    "selected_place_id": null,
+    "expect_clarification": false
+  }
+]

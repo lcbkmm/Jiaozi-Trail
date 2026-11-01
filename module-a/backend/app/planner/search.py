@@ -3,6 +3,7 @@ from collections import Counter
 from dataclasses import dataclass, field, replace
 from datetime import datetime, time, timedelta, timezone
 from app.errors import AppError
+from app.goals import required_goals, covered, sequence_progress
 from app.schemas import CampaignStop, Place, Point, Preferences, WalkingLeg
 
 CST = timezone(timedelta(hours=8))
@@ -49,7 +50,7 @@ def schedule(arrival, stop):
     return None
 
 
-def search_routes(preferences: Preferences, places_list: list[Place], stops_list: list[CampaignStop], graph, *, include_options=False, max_stops=5):
+def search_routes(preferences: Preferences, places_list: list[Place], stops_list: list[CampaignStop], graph, *, include_options=False, max_stops=5, allow_empty=False):
     places = {p.place_id: p for p in places_list}
     p = preferences
     for place_id in [p.start_place_id, *([p.end_place_id] if p.end_place_id else []),
@@ -67,6 +68,18 @@ def search_routes(preferences: Preferences, places_list: list[Place], stops_list
     if not set(p.must_visit_ids) <= {s.place_id for s in candidates}:
         raise AppError("NO_FEASIBLE_ROUTE", "必去地点关闭、排队超过上限或与排除偏好冲突。", 422,
                        {"suggestions": ["放宽排队上限", "调整必去地点"]})
+    goals = required_goals(p)
+    required_experiences = set(p.required_experiences)
+    available_experiences = {tag for stop in candidates for tag in stop.interests}
+    missing_experiences = required_experiences - available_experiences
+    if missing_experiences:
+        raise AppError("NO_FEASIBLE_ROUTE", "当前条件下无法安排"+"、".join(INTEREST_LABELS.get(tag,tag) for tag in sorted(missing_experiences))+"，请调整条件或更换体验。", 422,
+                       {"missing_required_experiences": sorted(missing_experiences),
+                        "suggestions": ["放宽排队上限", "更换体验或补充候选门店"]})
+    for goal in goals + p.visit_sequence:
+        if not covered(goal,candidates):
+            raise AppError("NO_FEASIBLE_ROUTE", "当前候选无法满足指定体验或顺序目标。",422,
+                           {"unsatisfied_goal":goal.model_dump(),"suggestions":["调整条件或补充候选"]})
     departure = p.departure_at.astimezone(CST)
     deadline = departure + timedelta(seconds=p.max_duration_s)
     rejects = Counter()
@@ -79,11 +92,15 @@ def search_routes(preferences: Preferences, places_list: list[Place], stops_list
             for stop in candidates:
                 if stop.place_id in state.selected:
                     continue
-                if stop.category == "meal" and any(stops_by_place[pid].category == "meal" for pid in state.selected):
-                    rejects["multiple_meals"] += 1
+                categories=[stops_by_place[pid].category for pid in state.selected]
+                if any((sum(category in {'coffee','tea'} if key=='drink' else category==key for category in categories)
+                        >= limit) for key,limit in p.category_limits.items()
+                       if (stop.category in {'coffee','tea'} if key=='drink' else stop.category==key)):
+                    rejects['category_limit'] += 1
                     continue
-                if stop.category in {"coffee", "tea"} and any(stops_by_place[pid].category in {"coffee", "tea"} for pid in state.selected):
-                    rejects["multiple_drink_stops"] += 1
+                selected_stops=[stops_by_place[pid] for pid in (*state.selected,stop.place_id)]
+                if sequence_progress(p.visit_sequence,selected_stops)<0:
+                    rejects["visit_order"] += 1
                     continue
                 leg = leg_between(state.last, stop.place_id, graph, places, state.at)
                 if leg is None:
@@ -106,12 +123,15 @@ def search_routes(preferences: Preferences, places_list: list[Place], stops_list
                     rejects["time_limit"] += 1
                     continue
                 matching = sorted(set(stop.interests) & set(p.interests))
+                goal_tags={tag for goal in goals+p.visit_sequence for tag in goal.any_of}
+                required_matching = sorted(set(stop.interests) & goal_tags)
                 prior_interests = {tag for pid in state.selected for tag in stops_by_place[pid].interests}
                 novelty = len(set(matching)-prior_interests) / max(1, len(set(p.interests)))
                 diversity = stop.category not in {stops_by_place[pid].category for pid in state.selected}
                 # Demo benefits are shown with conditions, not counted as guaranteed savings.
                 increment = 0.16 + 0.40*novelty + 0.15*diversity - 0.15*leg.distance_m/max(p.max_walk_m, 1) - 0.10*stop.queue_s/max(p.max_duration_s, 1)
                 place = places[stop.place_id]
+                labels={**INTEREST_LABELS,**stop.experience_labels}
                 row = {"stop_id": stop.stop_id, "place_id": stop.place_id, "name": place.name,
                        "category": stop.category, "activity_title": stop.title,
                        "arrival_at": arrival.isoformat(), "experience_start_at": experience.isoformat(),
@@ -120,7 +140,8 @@ def search_routes(preferences: Preferences, places_list: list[Place], stops_list
                        "cost_min_per_person_fen": stop.cost_min_fen, "cost_max_per_person_fen": stop.cost_max_fen,
                        "benefits": [b.model_dump(mode="json") for b in stop.benefits],
                        "verification": "not_visited", "matched_interests": matching,
-                       "recommendation": ("符合偏好："+"、".join(INTEREST_LABELS.get(tag, tag) for tag in matching)) if matching else "补充沿途体验",
+                       "matched_required_experiences": required_matching,
+                       "recommendation": ("满足核心需求："+"、".join(labels.get(tag,tag) for tag in required_matching)) if required_matching else (("符合偏好："+"、".join(labels.get(tag, tag) for tag in matching)) if matching else "补充沿途体验"),
                        "sources": {"location": place.location_source, "campaign": "demo", "queue": "demo", "cost": "demo"}}
                 new = State(last=stop.place_id, at=leave, selected=(*state.selected, stop.place_id),
                     stops=[*state.stops, row], legs=[*state.legs, leg],
@@ -129,7 +150,9 @@ def search_routes(preferences: Preferences, places_list: list[Place], stops_list
                     wait=state.wait+wait, queue=state.queue+stop.queue_s, dwell=state.dwell+stop.dwell_s,
                     score=state.score+increment)
                 extended.append(new)
-                if not required <= set(new.selected):
+                fulfilled = {tag for pid in new.selected for tag in stops_by_place[pid].interests}
+                if (not required <= set(new.selected) or not all(covered(goal,selected_stops) for goal in goals)
+                        or sequence_progress(p.visit_sequence,selected_stops)!=len(p.visit_sequence)):
                     continue
                 final = new
                 if p.end_place_id:
@@ -145,31 +168,59 @@ def search_routes(preferences: Preferences, places_list: list[Place], stops_list
                     results.append(final)
                 else:
                     rejects["return_or_buffer_limit"] += 1
-        beam = sorted(extended, key=lambda s: (-s.score, s.at, s.selected))[:32]
+        def beam_rank(state):
+            fulfilled = {tag for pid in state.selected for tag in stops_by_place[pid].interests}
+            selected_stops=[stops_by_place[pid] for pid in state.selected]
+            progress=sum(covered(goal,selected_stops) for goal in goals)+sequence_progress(p.visit_sequence,selected_stops)
+            return (-len(required & set(state.selected)), -progress, -state.score, state.at, state.selected)
+        beam = sorted(extended, key=beam_rank)[:32]
         if not beam:
             break
+    if not results and allow_empty and not required and not goals and not p.visit_sequence:
+        terminal = State(last=p.start_place_id, at=departure)
+        if p.end_place_id and p.end_place_id != p.start_place_id:
+            back = leg_between(p.start_place_id, p.end_place_id, graph, places, departure)
+            if back:
+                terminal = replace(terminal, at=departure+timedelta(seconds=back.duration_s),
+                                   legs=[back], walk=back.duration_s, distance=back.distance_m)
+            else:
+                rejects["missing_return_leg"] += 1
+                terminal = None
+        buffer = p.buffer_s if terminal and terminal.legs else 0
+        if terminal and terminal.at+timedelta(seconds=buffer) <= deadline and terminal.distance <= p.max_walk_m:
+            terminal_preferences = p.model_copy(update={"buffer_s": buffer})
+            plan = render_plan(terminal, terminal_preferences, departure, rejects)
+            plan["planning_outcome"] = "return_only" if terminal.legs else "completed"
+            plan["notice"] = "剩余时间仅安排返程。" if terminal.legs else "行程已完成，没有继续添加站点。"
+            if include_options:
+                return {"options": [{"option_id": "balanced", "title": plan["notice"], "recommended": True, **plan}],
+                        "recommended_id": "balanced", "shared_walking_graph": True, "notice": plan["notice"]}
+            return plan
     if not results:
         raise AppError("NO_FEASIBLE_ROUTE", "在当前时间、预算与点位条件下没有可执行路线。", 422,
-                       {"conflicts": dict(rejects), "suggestions": ["增加可用时间", "提高预算或减少必去点", "调整出发时段"]})
+                       {"conflicts": dict(rejects), "required_experiences": sorted(required_experiences), "suggestions": ["增加可用时间", "提高预算或减少必去点", "调整出发时段"]})
     def coverage(state):
         return len({tag for pid in state.selected for tag in stops_by_place[pid].interests} & set(p.interests))
 
     def rank(state, style):
         if style == "less_walking":
-            return (coverage(state), -state.distance, state.score, -state.walk)
+            return (-state.distance, -state.walk, coverage(state), state.score)
         if style == "more_experiences":
             categories = len({stops_by_place[pid].category for pid in state.selected})
             return (coverage(state), categories, len(state.selected), state.score, -state.walk)
         return (state.score, len(state.selected), -state.walk)
 
-    min_stops = min(3, max(len(s.selected) for s in results))
-    comparable = [s for s in results if len(s.selected) >= min_stops]
+    comparable = results
+    if p.visit_mode == "focused":
+        fewest_stops = min(len(state.selected) for state in results)
+        comparable = [state for state in results if len(state.selected) == fewest_stops]
     if not include_options:
         best = max(comparable, key=lambda s: rank(s, p.planning_style))
         return render_plan(best, p, departure, rejects)
     chosen = []
-    for style, title in [("balanced", "综合推荐"), ("less_walking", "少走一点"),
-                         ("more_experiences", "多逛几站")]:
+    styles=[("balanced","综合推荐"),("less_walking","少走一点"),("more_experiences","多逛几站")]
+    styles.sort(key=lambda item:item[0]!=p.planning_style)
+    for style, title in styles:
         best = max(comparable, key=lambda s: rank(s, style))
         if any(set(best.selected) == set(state.selected) for _, _, state in chosen):
             continue
@@ -178,8 +229,8 @@ def search_routes(preferences: Preferences, places_list: list[Place], stops_list
     for style, title, state in chosen:
         option_preferences = p.model_copy(update={"planning_style": style})
         plan = render_plan(state, option_preferences, departure, rejects)
-        options.append({"option_id": style, "title": title, "recommended": style == "balanced", **plan})
-    return {"options": options, "recommended_id": "balanced", "shared_walking_graph": True,
+        options.append({"option_id": style, "title": title, "recommended": style == p.planning_style, **plan})
+    return {"options": options, "recommended_id": p.planning_style, "shared_walking_graph": True,
             "notice": "最多提供三条不同点位组合的可行方案；不足时只返回实际有差异的方案。"}
 
 

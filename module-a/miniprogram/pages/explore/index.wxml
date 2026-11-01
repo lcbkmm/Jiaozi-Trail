@@ -6,13 +6,26 @@
     <view class="start-note">春熙路地铁站出发 · 步行 · 最后一站结束</view><button class="primary" loading="{{loading}}" disabled="{{loading}}" bindtap="generate">{{online ? '生成我的逛吃路线' : '查看当前条件的已准备方案'}}</button>
     <view wx:if="{{!online}}" class="preview-note">离线仅有 180 分钟 / 200 元 / 咖啡·美食·地标方案。修改条件需连接后端。</view>
   </view>
+  <view class="section">
+    <view class="section-title">位置与演示进度</view>
+    <view class="small">{{positionLabel}}</view>
+    <view class="chat-proposal-actions"><button class="secondary" disabled="{{!online || actionLoading}}" bindtap="locateUser">更新设备位置</button><button class="secondary" disabled="{{!online || actionLoading}}" bindtap="confirmDemoPosition">确认演示位置</button></view>
+    <view wx:if="{{effectiveAt}}" class="small">演示行程时间：{{effectiveAt}}（位置采集使用实际时间）</view>
+    <view wx:if="{{routeStatus === 'active' && online}}">
+      <view class="small">已完成 {{completedCount}} / {{route.stops.length}} 站</view>
+      <button class="secondary" disabled="{{actionLoading}}" bindtap="completeNextStop">{{completedCount === route.stops.length ? '检查结束行程 / 返程' : '演示：完成下一站并推进时间'}}</button>
+      <view class="chat-proposal-actions"><button class="secondary" disabled="{{actionLoading}}" bindtap="simulateQueue">演示：用餐点排队 40 分钟</button><button class="primary" loading="{{actionLoading}}" disabled="{{actionLoading}}" bindtap="replanNow">重排剩余行程</button></view>
+    </view>
+    <view wx:if="{{routeStatus === 'completed'}}" class="chat-notice">行程已完成。连接后端可重新开启一轮演示。</view>
+    <view wx:if="{{dynamicNotice}}" class="chat-notice">{{dynamicNotice}}</view>
+  </view>
   <view class="section chat-section"><view class="section-head"><text class="section-title">和逛吃助手聊聊</text><text class="small">多条件理解 · 确认后应用</text></view>
     <view class="chat-tip">{{online ? '可以改预算、保留点位、查询排队；原行程不会直接被修改。' : '先在页面底部连接本地后端，再使用真实模型。离线预览不模拟 AI 回复。'}}</view>
     <view class="chat-examples"><text data-text="预算改成150元，保留IFS，不吃火锅" bindtap="useChatExample">改预算并保留 IFS</text><text data-text="这家预计排队多久？" bindtap="useChatExample">问问这家的排队</text></view>
     <view wx:for="{{chatMessages}}" wx:key="id" class="chat-message {{item.role === 'user' ? 'user-message' : ''}}"><text>{{item.text}}</text></view>
     <textarea class="chat-input" maxlength="1000" value="{{chatText}}" bindinput="onChatInput" placeholder="例如：预算150元，保留IFS，不吃火锅" auto-height="{{true}}" />
     <button class="secondary chat-send" loading="{{chatLoading}}" disabled="{{chatLoading}}" bindtap="sendChat">{{online ? '发送并计算建议' : '连接后使用对话'}}</button>
-    <view wx:if="{{chatPending}}" class="chat-proposal"><view>已计算 {{chatPending.route_options.length}} 个可行方案</view><view class="small">{{chatPending.summary}}</view><view class="chat-proposal-actions"><button class="primary" bindtap="applyChatProposal">确认使用这些条件</button><button class="secondary" bindtap="dismissChatProposal">暂不应用</button></view></view>
+    <view wx:if="{{chatPending}}" class="chat-proposal"><view>已计算 {{chatPending.route_options.length}} 个可行方案</view><view class="small">{{chatPending.summary}}</view><view wx:for="{{chatPending.choices}}" wx:key="index" class="proposal-choice {{pendingIndex === item.index ? 'chosen' : ''}}" data-index="{{item.index}}" bindtap="choosePending"><view>{{pendingIndex === item.index ? '✓ ' : ''}}{{item.title}}</view><view class="small">{{item.summary}}</view><view class="small">{{item.detail}}</view></view><view class="chat-proposal-actions"><button class="primary" loading="{{actionLoading}}" disabled="{{actionLoading}}" bindtap="applyChatProposal">{{chatPending.replan_proposals ? '确认更新剩余路线' : '确认使用这些条件'}}</button><button class="secondary" bindtap="dismissChatProposal">暂不应用</button></view></view>
     <view wx:if="{{chatNotice}}" class="chat-notice">{{chatNotice}}</view>
   </view>
   <view class="section-head route-heading"><text class="section-title">{{options.length > 1 ? '选一条适合你的路线' : '为你准备的路线'}}</text><text class="small">{{options.length}} 个可行方案</text></view>
@@ -20,8 +33,8 @@
   <view wx:if="{{route}}" class="section route-section"><view class="route-summary"><view><text class="big-number">{{route.walkKm}}</text><text class="unit">km 步行</text></view><view><text class="big-number">{{route.durationMinutes}}</text><text class="unit">分钟总计</text></view><view><text class="big-number">{{route.stops.length}}</text><text class="unit">站体验</text></view></view>
     <map id="route-map" class="map" latitude="{{mapLatitude}}" longitude="{{mapLongitude}}" markers="{{markers}}" polyline="{{polylines}}" include-points="{{includePoints}}" scale="15" enable-scroll="{{true}}" enable-zoom="{{true}}" bindmarkertap="onMarkerTap"></map>
     <view class="map-caption">百度步行路径 · 原生地图展示 · 入口尚未人工核对</view>
-    <view wx:for="{{route.stops}}" wx:key="stop_id" class="stop" data-place-id="{{item.place_id}}" bindtap="showPlace"><view class="stop-index">{{index + 1}}</view><view class="stop-content"><view class="stop-header"><text class="time">{{item.arrivalLabel}}</text><text class="detail-link">查看详情 ›</text></view><view class="stop-name">{{item.name}}</view><view class="small">步行 {{item.walkMinutes}} 分 · 排队 {{item.queueMinutes}} 分 · 停留 {{item.dwellMinutes}} 分</view><view class="stop-reason">{{item.recommendation}}</view><view wx:if="{{item.benefits.length}}" class="benefit">{{item.benefits[0].title}}</view></view></view>
-    <button class="primary" loading="{{saving}}" disabled="{{saving}}" bindtap="startRoute">{{routeStatus === 'active' ? '行程已开始' : (online ? '保存并开始这条路线' : '体验开始行程')}}</button><view class="source-note">位置与步行路径来自百度；活动、消费、排队为演示配置。当前未接入真实客流、打卡和交子奖励。</view>
+    <view wx:for="{{route.stops}}" wx:key="stop_id" class="stop" data-place-id="{{item.place_id}}" bindtap="showPlace"><view class="stop-index">{{index + 1}}</view><view class="stop-content"><view class="stop-header"><text class="time">{{item.arrivalLabel}}</text><text class="detail-link">查看详情 ›</text></view><view class="stop-name">{{item.name}}<text wx:if="{{item.completed}}"> · 已完成</text></view><view class="small">步行 {{item.walkMinutes}} 分 · 排队 {{item.queueMinutes}} 分 · 停留 {{item.dwellMinutes}} 分</view><view class="stop-reason">{{item.recommendation}}</view><view wx:if="{{item.benefits.length}}" class="benefit">{{item.benefits[0].title}}</view></view></view>
+    <button class="primary" loading="{{saving}}" disabled="{{saving}}" bindtap="startRoute">{{routeStatus === 'completed' ? '行程已完成' : (routeStatus === 'active' ? '行程已开始' : (online ? '保存并开始这条路线' : '体验开始行程'))}}</button><view class="source-note">位置与步行路径来自百度；活动、消费、排队为演示配置。当前未接入真实客流、打卡和交子奖励。</view>
   </view>
   <view class="section jiaozi"><view><view class="section-title">一张交子，收集城市记忆</view><view class="small">打卡地标、收藏好店，逐一点亮</view><view class="future">交子与 DIY 将在后续阶段接入</view></view><view class="ticket"><view class="ticket-title">交 子</view><view class="ticket-icons"><text>山</text><text>食</text><text>游</text></view><view class="ticket-caption">成都 · 城市记忆</view></view></view>
   <view class="connection"><view class="small">本地后端地址（电脑模拟器使用）</view><input class="api-input" value="{{apiBase}}" bindinput="onApiInput"/><button class="secondary" loading="{{connecting}}" bindtap="connect">连接本地后端</button><view class="preview-note">真机需可访问的后端地址；127.0.0.1 仅指当前设备。</view></view>

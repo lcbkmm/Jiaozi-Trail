@@ -33,6 +33,7 @@ class DynamicRepository:
     def update_position(self, token, payload):
         self.snapshot(token)
         with self.database.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
             row = db.execute('SELECT position_payload FROM dynamic_sessions WHERE token=?',(token,)).fetchone()
             if row[0]:
                 old=json.loads(row[0])
@@ -87,15 +88,15 @@ class DynamicRepository:
             if body.base_revision!=row['base_revision']:
                 raise AppError('STALE_REVISION','提交版本不匹配建议。',409)
             if row['accepted_revision'] is not None:
-                accepted=db.execute('SELECT payload FROM route_revisions WHERE route_id=? AND revision=?',
-                                    (route_id,row['accepted_revision'])).fetchone()
-                return json.loads(accepted['payload'])
+                return json.loads(current['payload'])
             state=db.execute('SELECT state_version,position_revision FROM dynamic_sessions WHERE token=?',(token,)).fetchone()
             if (current['revision']!=row['base_revision'] or state is None or state[0]!=row['state_version']
                     or state[1]!=row['position_revision']
                     or datetime.now(timezone.utc)>datetime.fromisoformat(row['expires_at'])):
                 raise AppError('STALE_PROPOSAL','路线、商家状态或用户位置已变化，或建议过期，请重新计算。',409)
             proposal=json.loads(row['payload'])
+            if hasattr(self,'catalog_version') and proposal.get('catalog_version')!=self.catalog_version():
+                raise AppError('STALE_PROPOSAL','地点目录已更新，请重新计算路线。',409)
             origin=proposal.get('render',{}).get('origin') or {}
             if origin.get('observed_at') and (datetime.now(timezone.utc)-datetime.fromisoformat(origin['observed_at'])).total_seconds()>120:
                 raise AppError('STALE_POSITION','建议所用位置已过期，请刷新定位后重排。',409)

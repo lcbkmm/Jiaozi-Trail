@@ -25,7 +25,7 @@ async def main():
             limits=httpx.Limits(max_connections=4, max_keepalive_connections=2)) as client:
         maps = BaiduMaps(client, settings.baidu_ak)
         segments = SegmentRepository(database, maps, settings.maps_mode)
-        graph, failures = await segments.graph(places)
+        graph, failures = await segments.graph(places, max_live_queries=None, timeout_s=None)
         report = {"places": len(places), "expected_segments": len(places)*(len(places)-1),
                   "usable_segments": len(graph), "new_upstream_calls": maps.calls,
                   "failures": failures, "source": "baidu_walking"}
